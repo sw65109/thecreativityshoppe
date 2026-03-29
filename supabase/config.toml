@@ -1,0 +1,16 @@
+project_id = "emampagbmvasahlnmyrb"
+
+[functions.list-users]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.enable-user]
+verify_jwt = false
+
+[functions.disable-user]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false

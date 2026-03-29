@@ -1,36 +1,137 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Creativity Shoppe
 
-## Getting Started
+This is my little storefront project: a Next.js + Supabase shop with a customer flow (browse → cart → checkout) plus an admin area for managing products/orders/users.
 
-First, run the development server:
+I’m keeping the README practical — basically the notes I use when I’m setting this up on a new machine.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+<details>
+  <summary><strong>Quick Start</strong></summary>
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+  **Prereqs**
+  - Node.js (recent LTS)
+  - npm
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+  **Install + run**
+  ```bash
+  npm install
+  npm run dev
+  ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+  Open http://localhost:3000
 
-## Learn More
+</details>
 
-To learn more about Next.js, take a look at the following resources:
+<details>
+  <summary><strong>What’s In Here</strong></summary>
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+  - Storefront pages (home, shop listing, product detail)
+  - Cart + checkout flow
+  - Account pages (profile, addresses, orders, security)
+  - Admin dashboard (`/admin`) with product management + order/user views
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+</details>
 
-## Deploy on Vercel
+<details>
+  <summary><strong>Tech Stack</strong></summary>
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  - Next.js (App Router)
+  - React + TypeScript
+  - Tailwind CSS
+  - Supabase:
+    - Auth
+    - Postgres tables
+    - Storage (for product images)
+    - Edge Functions (used for a few “server-ish” operations)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</details>
+
+<details>
+  <summary><strong>Environment Variables</strong></summary>
+
+  Create a `.env.local` in the repo root.
+
+  ```bash
+  # Public (safe to ship to the browser)
+  NEXT_PUBLIC_SITE_URL=http://localhost:3000
+  NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+  # Server-only (DO NOT expose this client-side)
+  SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+  ```
+
+  Notes:
+  - `NEXT_PUBLIC_SITE_URL` is used for auth redirect links (signup confirmation + password reset).
+  - `SUPABASE_SERVICE_ROLE_KEY` is used by server code for admin/server actions; don’t put it anywhere that ends up in the browser.
+
+</details>
+
+<details>
+  <summary><strong>Supabase Expectations (Tables / Storage / Functions)</strong></summary>
+
+  This app expects these Supabase pieces to exist:
+
+  **Tables (at least referenced in code)**
+  - `profiles` (includes a `role` column used for admin checks)
+  - `products`
+  - `product_images`
+  - `cart_items`
+  - `orders`
+  - `order_items`
+  - `addresses`
+
+  **Storage bucket**
+  - `product-images` (this is where product images get uploaded)
+
+  **Edge Functions (in `supabase/functions/`)**
+  - `create-order`
+  - `order`
+  - `list-users`
+  - `enable-user`
+  - `disable-user`
+  - `delete-user`
+
+  If you rename buckets/functions, you’ll want to update the constants in the code.
+
+</details>
+
+<details>
+  <summary><strong>Admin Access</strong></summary>
+
+  - Admin UI lives at `/admin`.
+  - Admin access is checked server-side by reading your profile role from `profiles.role`.
+
+  If you’re setting up a fresh database, make sure your user has a row in `profiles` and that `role` is set to `admin`.
+
+</details>
+
+<details>
+  <summary><strong>Images (Supabase-hosted)</strong></summary>
+
+  Next Image remote loading is locked down.
+
+  - The allowed remote hostname is currently configured in `next.config.ts`.
+  - If you switch Supabase projects, update the `images.remotePatterns` hostname to match your new `*.supabase.co` host.
+
+</details>
+
+<details>
+  <summary><strong>Scripts</strong></summary>
+
+  ```bash
+  npm run dev
+  npm run build
+  npm run start
+  npm run lint
+  ```
+
+</details>
+
+<details>
+  <summary><strong>Troubleshooting Notes</strong></summary>
+
+  - If auth redirects are weird: double-check `NEXT_PUBLIC_SITE_URL`.
+  - If product images won’t render: confirm your Supabase hostname is allowed in `next.config.ts`.
+  - If admin pages error: confirm `SUPABASE_SERVICE_ROLE_KEY` is set server-side and your `profiles.role` is `admin`.
+
+</details>
