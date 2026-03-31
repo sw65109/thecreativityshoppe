@@ -202,7 +202,7 @@ export default function CheckoutPage() {
               <div className="mt-6 space-y-4">
                 {items.map((item) => (
                   <div
-                    key={item.id}
+                    key={`${item.id}::${item.variant ?? ""}`}
                     className="grid grid-cols-[72px_1fr_auto] items-center gap-4 rounded-2xl border border-walnut/15 bg-sandstone/55 p-3"
                   >
                     <div className="relative h-18 overflow-hidden rounded-xl">
@@ -218,6 +218,9 @@ export default function CheckoutPage() {
 
                     <div>
                       <p className="font-semibold">{item.name}</p>
+                      {item.variant ? (
+                        <p className="text-sm text-walnut/70">{item.variant}</p>
+                      ) : null}
                       <p className="text-sm text-walnut/70">
                         Qty {item.quantity}
                       </p>

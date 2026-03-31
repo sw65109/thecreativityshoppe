@@ -5,8 +5,15 @@ import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
 export default function CartPage() {
-  const { items, ready, itemCount, subtotal, removeItem, updateQuantity, clearCart } =
-    useCart();
+  const {
+    items,
+    ready,
+    itemCount,
+    subtotal,
+    removeItem,
+    updateQuantity,
+    clearCart,
+  } = useCart();
 
   if (!ready) {
     return (
@@ -59,7 +66,7 @@ export default function CartPage() {
             <div className="space-y-6">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={`${item.id}::${item.variant ?? ""}`}
                   className="grid gap-4 rounded-3xl bg-driftwood p-5 text-walnut sm:grid-cols-[120px_1fr]"
                 >
                   <div className="relative h-32 overflow-hidden rounded-2xl">
@@ -82,6 +89,12 @@ export default function CartPage() {
                         {item.name}
                       </Link>
 
+                      {item.variant ? (
+                        <p className="mt-1 text-sm text-walnut/70">
+                          {item.variant}
+                        </p>
+                      ) : null}
+
                       <p className="mt-2 text-walnut/80">
                         ${item.price.toFixed(2)} each
                       </p>
@@ -92,7 +105,11 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
+                            updateQuantity(
+                              item.id,
+                              item.variant,
+                              item.quantity - 1,
+                            )
                           }
                           className="px-4 py-2 text-lg font-semibold transition hover:bg-walnut/10"
                           aria-label={`Decrease quantity of ${item.name}`}
@@ -107,7 +124,11 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
+                            updateQuantity(
+                              item.id,
+                              item.variant,
+                              item.quantity + 1,
+                            )
                           }
                           className="px-4 py-2 text-lg font-semibold transition hover:bg-walnut/10"
                           aria-label={`Increase quantity of ${item.name}`}
@@ -118,7 +139,7 @@ export default function CartPage() {
 
                       <button
                         type="button"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.id, item.variant)}
                         className="rounded-full border border-walnut/20 px-4 py-2 font-medium transition hover:bg-walnut hover:text-sandstone"
                       >
                         Remove

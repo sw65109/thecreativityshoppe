@@ -8,7 +8,7 @@ export async function loadProducts(): Promise<{
   const extended = await supabaseServer
     .from("products")
     .select(
-      "id, name, description, price, image_url, created_at, in_stock, on_sale, product_images(id, image_url, sort_order, is_primary, created_at)",
+      "id, name, description, price, image_url, created_at, in_stock, on_sale, product_images(id, image_url, sort_order, is_primary, created_at, variant)",
     )
     .order("created_at", { ascending: false });
 
@@ -19,7 +19,7 @@ export async function loadProducts(): Promise<{
   const basic = await supabaseServer
     .from("products")
     .select(
-      "id, name, description, price, image_url, created_at, product_images(id, image_url, sort_order, is_primary, created_at)",
+      "id, name, description, price, image_url, created_at, product_images(id, image_url, sort_order, is_primary, created_at, variant)",
     )
     .order("created_at", { ascending: false });
 

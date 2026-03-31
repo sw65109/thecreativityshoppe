@@ -12,12 +12,22 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/app/context/AuthContext";
 
+function normalizeVariant(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
+
+function sameCartLine(item: CartItem, id: string, variant: string) {
+  return item.id === id && normalizeVariant(item.variant) === variant;
+}
+
 export type CartItem = {
   id: string;
   name: string;
   price: number;
   image: string;
   quantity: number;
+  variant?: string;
 };
 
 type AddCartItemInput = Omit<CartItem, "quantity"> & {
@@ -30,8 +40,8 @@ type CartContextType = {
   itemCount: number;
   subtotal: number;
   addItem: (item: AddCartItemInput) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  removeItem: (id: string, variant?: string) => void;
+  updateQuantity: (id: string, variant: string | undefined, quantity: number) => void;
 
   clearCart: () => void;
 
@@ -51,6 +61,7 @@ type ProductJoin = {
 
 type CartItemRow = {
   product_id: string;
+  variant: string | null;
   quantity: number;
   products: ProductJoin | ProductJoin[] | null;
 };
@@ -85,7 +96,7 @@ function removeGuestCartFromStorage() {
 async function fetchServerCart(userId: string): Promise<CartItem[]> {
   const { data, error } = await supabase
     .from("cart_items")
-    .select("product_id, quantity, products(id, name, price, image_url)")
+    .select("product_id, variant, quantity, products(id, name, price, image_url)")
     .eq("user_id", userId);
 
   if (error) {
@@ -97,11 +108,10 @@ async function fetchServerCart(userId: string): Promise<CartItem[]> {
 
   return rows
     .map((row) => {
-      const product = Array.isArray(row.products)
-        ? row.products[0]
-        : row.products;
-
+      const product = Array.isArray(row.products) ? row.products[0] : row.products;
       if (!product) return null;
+
+      const variant = normalizeVariant(row.variant);
 
       return {
         id: product.id,
@@ -109,6 +119,7 @@ async function fetchServerCart(userId: string): Promise<CartItem[]> {
         price: Number(product.price ?? 0),
         image: product.image_url ?? "/the_creativity_shoppe1.png",
         quantity: Math.max(1, Number(row.quantity ?? 1)),
+        variant: variant || undefined,
       } satisfies CartItem;
     })
     .filter(Boolean) as CartItem[];
@@ -119,7 +130,7 @@ async function mergeGuestCartIntoServer(userId: string, guestItems: CartItem[]) 
 
   const { data: existing, error: existingError } = await supabase
     .from("cart_items")
-    .select("product_id, quantity")
+    .select("product_id, variant, quantity")
     .eq("user_id", userId);
 
   if (existingError) {
@@ -128,27 +139,28 @@ async function mergeGuestCartIntoServer(userId: string, guestItems: CartItem[]) 
   }
 
   const existingMap = new Map<string, number>();
-  for (const row of (existing ?? []) as Array<{
-    product_id: string;
-    quantity: number;
-  }>) {
-    existingMap.set(row.product_id, Number(row.quantity ?? 0));
+  for (const row of (existing ?? []) as Array<{ product_id: string; variant: string | null; quantity: number }>) {
+    const key = `${row.product_id}::${normalizeVariant(row.variant)}`;
+    existingMap.set(key, Number(row.quantity ?? 0));
   }
 
   const upsertRows = guestItems.map((item) => {
-    const currentQty = existingMap.get(item.id) ?? 0;
+    const variant = normalizeVariant(item.variant);
+    const key = `${item.id}::${variant}`;
+    const currentQty = existingMap.get(key) ?? 0;
     const nextQty = Math.max(1, currentQty + Math.max(1, item.quantity));
 
     return {
       user_id: userId,
       product_id: item.id,
+      variant,
       quantity: nextQty,
     };
   });
 
   const { error: upsertError } = await supabase
     .from("cart_items")
-    .upsert(upsertRows, { onConflict: "user_id,product_id" });
+    .upsert(upsertRows, { onConflict: "user_id,product_id,variant" });
 
   if (upsertError) {
     console.error("Failed to merge guest cart into server cart:", upsertError);
@@ -158,13 +170,15 @@ async function mergeGuestCartIntoServer(userId: string, guestItems: CartItem[]) 
 async function upsertServerQuantity(
   userId: string,
   productId: string,
+  variant: string,
   quantity: number,
 ) {
   const nextQty = Math.max(1, quantity);
+  const variantValue = normalizeVariant(variant);
 
   const { error } = await supabase.from("cart_items").upsert(
-    { user_id: userId, product_id: productId, quantity: nextQty },
-    { onConflict: "user_id,product_id" },
+    { user_id: userId, product_id: productId, variant: variantValue, quantity: nextQty },
+    { onConflict: "user_id,product_id,variant" },
   );
 
   if (error) {
@@ -172,12 +186,15 @@ async function upsertServerQuantity(
   }
 }
 
-async function deleteServerItem(userId: string, productId: string) {
+async function deleteServerItem(userId: string, productId: string, variant: string) {
+  const variantValue = normalizeVariant(variant);
+
   const { error } = await supabase
     .from("cart_items")
     .delete()
     .eq("user_id", userId)
-    .eq("product_id", productId);
+    .eq("product_id", productId)
+    .eq("variant", variantValue);
 
   if (error) {
     console.error("Failed to delete server cart item:", error);
@@ -185,10 +202,7 @@ async function deleteServerItem(userId: string, productId: string) {
 }
 
 async function clearServerCart(userId: string) {
-  const { error } = await supabase
-    .from("cart_items")
-    .delete()
-    .eq("user_id", userId);
+  const { error } = await supabase.from("cart_items").delete().eq("user_id", userId);
 
   if (error) {
     console.error("Failed to clear server cart:", error);
@@ -263,53 +277,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function addItem(item: AddCartItemInput) {
     const quantityToAdd = Math.max(1, item.quantity ?? 1);
+    const variant = normalizeVariant(item.variant);
+
     const currentQty =
-      itemsRef.current.find((row) => row.id === item.id)?.quantity ?? 0;
+      itemsRef.current.find((row) => sameCartLine(row, item.id, variant))?.quantity ?? 0;
+
     const nextQty = currentQty + quantityToAdd;
 
     setItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (currentItem) => currentItem.id === item.id,
+      const existingItem = currentItems.find((currentItem) =>
+        sameCartLine(currentItem, item.id, variant),
       );
 
       if (existingItem) {
         return currentItems.map((currentItem) =>
-          currentItem.id === item.id
+          sameCartLine(currentItem, item.id, variant)
             ? { ...currentItem, quantity: currentItem.quantity + quantityToAdd }
             : currentItem,
         );
       }
 
-      return [...currentItems, { ...item, quantity: quantityToAdd }];
+      return [
+        ...currentItems,
+        { ...item, quantity: quantityToAdd, variant: variant || undefined },
+      ];
     });
 
     if (userId) {
-      void upsertServerQuantity(userId, item.id, nextQty);
+      void upsertServerQuantity(userId, item.id, variant, nextQty);
     }
   }
 
-  function removeItem(id: string) {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== id));
+  function removeItem(id: string, variant?: string) {
+    const normalized = normalizeVariant(variant);
+
+    setItems((currentItems) =>
+      currentItems.filter((item) => !sameCartLine(item, id, normalized)),
+    );
 
     if (userId) {
-      void deleteServerItem(userId, id);
+      void deleteServerItem(userId, id, normalized);
     }
   }
 
-  function updateQuantity(id: string, quantity: number) {
+  function updateQuantity(id: string, variant: string | undefined, quantity: number) {
+    const normalized = normalizeVariant(variant);
+
     if (quantity <= 0) {
-      removeItem(id);
+      removeItem(id, normalized);
       return;
     }
 
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.id === id ? { ...item, quantity } : item,
+        sameCartLine(item, id, normalized) ? { ...item, quantity } : item,
       ),
     );
 
     if (userId) {
-      void upsertServerQuantity(userId, id, quantity);
+      void upsertServerQuantity(userId, id, normalized, quantity);
     }
   }
 

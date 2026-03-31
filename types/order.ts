@@ -69,6 +69,7 @@ export interface CreateOrderInput {
 export interface CreateOrderFunctionItemInput {
   productId: string;
   quantity: number;
+  variant?: string;
 }
 
 export interface CreateOrderFunctionInput {

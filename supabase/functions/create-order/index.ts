@@ -26,6 +26,7 @@ type CreateOrderRequest = {
   items: Array<{
     productId: string;
     quantity: number;
+    variant?: string;
   }>;
 };
 
@@ -284,9 +285,12 @@ Deno.serve(async (request: Request) => {
     const productPrice = Number(product.price);
     const lineTotal = toMoneyNumber(productPrice * quantity);
 
+    const variant = normalizeOptionalText(item.variant);
+    const productName = variant ? `${product.name} (${variant})` : product.name;
+
     return {
       product_id: product.id,
-      product_name: product.name,
+      product_name: productName,
       product_price: productPrice,
       quantity,
       line_total: lineTotal,

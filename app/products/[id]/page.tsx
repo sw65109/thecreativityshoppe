@@ -8,9 +8,8 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import type { Product } from "@/types/product";
 
 type ProductPageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ wood?: string }>;
 };
 
 type ProductImageRow = {
@@ -19,6 +18,7 @@ type ProductImageRow = {
   sort_order: number;
   is_primary: boolean;
   created_at: string;
+  variant: string | null;
 };
 
 type ProductRow = {
@@ -33,13 +33,60 @@ type ProductRow = {
 
 type StorefrontProduct = Product & {
   images: string[];
+  imageRows: ProductImageRow[];
 };
+
+function normalizeVariant(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.trim().toLowerCase();
+}
+
+function coerceToOption(value: unknown, options: string[]) {
+  const target = normalizeVariant(value);
+  if (!target) return null;
+
+  for (const option of options) {
+    if (normalizeVariant(option) === target) return option;
+  }
+
+  return null;
+}
+
+function getVariantConfig(
+  productName: string,
+): { label: string; options: string[] } | null {
+  const name = productName.toLowerCase();
+
+  if (name.includes("crochet") && name.includes("hook")) {
+    return { label: "Wood", options: ["Walnut", "Maple", "Cherry"] };
+  }
+
+  if (
+    name.includes("short") &&
+    name.includes("french") &&
+    name.includes("rolling")
+  ) {
+    return { label: "Wood", options: ["Maple", "Black Walnut", "Cherry"] };
+  }
+  if (name.includes("french") && name.includes("rolling")) {
+    return { label: "Wood", options: ["Maple", "Black Walnut", "Cherry"] };
+  }
+
+  if (name.includes("pen")) {
+    return {
+      label: "Wood",
+      options: ["Purple Heart", "Honey Locust", "Hickory", "Padauk"],
+    };
+  }
+
+  return null;
+}
 
 async function getStorefrontProducts(): Promise<StorefrontProduct[]> {
   const { data, error } = await supabaseServer
     .from("products")
     .select(
-      "id, name, price, description, image_url, created_at, product_images(id, image_url, sort_order, is_primary, created_at)",
+      "id, name, price, description, image_url, created_at, product_images(id, image_url, sort_order, is_primary, created_at, variant)",
     )
     .order("created_at", { ascending: false });
 
@@ -47,6 +94,7 @@ async function getStorefrontProducts(): Promise<StorefrontProduct[]> {
     return mockProducts.map((product) => ({
       ...product,
       images: [product.image],
+      imageRows: [],
     }));
   }
 
@@ -58,9 +106,9 @@ async function getStorefrontProducts(): Promise<StorefrontProduct[]> {
         return left.sort_order - right.sort_order;
       }) ?? [];
 
-    const galleryUrls = sortedGallery
-      .map((image) => image.image_url)
-      .filter(Boolean);
+    const imageRows = sortedGallery.filter((row) => Boolean(row.image_url));
+
+    const galleryUrls = imageRows.map((image) => image.image_url).filter(Boolean);
 
     const primaryImage = galleryUrls[0] ?? product.image_url ?? "";
     const allImages = Array.from(
@@ -74,6 +122,7 @@ async function getStorefrontProducts(): Promise<StorefrontProduct[]> {
       image: primaryImage,
       description: product.description?.trim() || "No description available.",
       images: allImages.length ? allImages : [primaryImage].filter(Boolean),
+      imageRows,
     };
   });
 
@@ -86,15 +135,15 @@ async function getStorefrontProducts(): Promise<StorefrontProduct[]> {
     : mockProducts.map((product) => ({
         ...product,
         images: [product.image],
+        imageRows: [],
       }));
 }
 
-export default async function ProductDetails({
-  params,
-}: ProductPageProps) {
+export default async function ProductDetails({ params, searchParams }: ProductPageProps) {
   const { id } = await params;
-  const products = await getStorefrontProducts();
+  const { wood } = await searchParams;
 
+  const products = await getStorefrontProducts();
   const product = products.find((item) => item.id === id);
 
   if (!product) {
@@ -102,6 +151,39 @@ export default async function ProductDetails({
   }
 
   const relatedProducts = products.filter((item) => item.id !== product.id);
+  const variantConfig = getVariantConfig(product.name);
+
+  const selectedVariant =
+    variantConfig?.options?.length
+      ? coerceToOption(wood, variantConfig.options) ?? variantConfig.options[0] ?? ""
+      : "";
+
+  const selectedVariantKey = normalizeVariant(selectedVariant);
+
+  const variantMatchedRows =
+    selectedVariantKey && product.imageRows.length
+      ? product.imageRows.filter(
+          (row) => normalizeVariant(row.variant) === selectedVariantKey,
+        )
+      : [];
+
+  const defaultRows =
+    product.imageRows.length
+      ? product.imageRows.filter((row) => !normalizeVariant(row.variant))
+      : [];
+
+  const activeRows =
+    variantMatchedRows.length
+      ? variantMatchedRows
+      : defaultRows.length
+        ? defaultRows
+        : product.imageRows;
+
+  const activeUrls = Array.from(
+    new Set(activeRows.map((row) => row.image_url).filter(Boolean)),
+  );
+
+  const activePrimaryImage = activeUrls[0] ?? product.image;
 
   return (
     <main className="min-h-screen bg-sandstone text-background">
@@ -118,7 +200,10 @@ export default async function ProductDetails({
         </div>
 
         <div className="grid gap-12 lg:grid-cols-2 items-start">
-          <ProductImageGallery name={product.name} images={product.images} />
+          <ProductImageGallery
+            name={product.name}
+            images={activeUrls.length ? activeUrls : product.images}
+          />
 
           <div className="flex flex-col justify-center">
             <p className="text-xs uppercase tracking-[0.3em] text-background/60">
@@ -142,7 +227,9 @@ export default async function ProductDetails({
                 id={product.id}
                 name={product.name}
                 price={product.price}
-                image={product.image}
+                image={activePrimaryImage}
+                variantLabel={variantConfig?.label}
+                variantOptions={variantConfig?.options}
               />
             </div>
           </div>

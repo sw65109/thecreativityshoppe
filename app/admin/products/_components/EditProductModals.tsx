@@ -82,6 +82,17 @@ export function EditProductModals({ productViews }: { productViews: ProductView[
 
                           <div className="flex-1 space-y-2 text-xs text-background/75">
                             <label className="flex items-center justify-between gap-2">
+                              <span>Wood tag</span>
+                              <input
+                                name={`image_variant_${image.id}`}
+                                type="text"
+                                defaultValue={image.variant ?? ""}
+                                placeholder="Example: Maple"
+                                className="w-40 rounded-lg border border-background/15 bg-sandstone px-2 py-1 text-background outline-none"
+                              />
+                            </label>
+
+                            <label className="flex items-center justify-between gap-2">
                               <span>Primary</span>
                               <input
                                 type="radio"
@@ -110,6 +121,13 @@ export function EditProductModals({ productViews }: { productViews: ProductView[
                   <p className="text-xs uppercase tracking-[0.3em] text-background/60">
                     Add images
                   </p>
+
+                  <input
+                    name="newImagesVariant"
+                    type="text"
+                    placeholder="Wood tag for these new images (optional)"
+                    className="block w-full rounded-xl border border-background/15 bg-sandstone px-4 py-2 text-background outline-none"
+                  />
 
                   <input
                     name="newImageFiles"

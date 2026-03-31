@@ -34,6 +34,7 @@ export function buildCheckoutPayload(
     items: items.map((item) => ({
       productId: item.id,
       quantity: item.quantity,
+      variant: item.variant,
     })),
   };
 }

@@ -11,6 +11,12 @@ function getFileExtension(fileName: string) {
   return parts.length > 1 ? (parts.pop()?.toLowerCase() ?? "jpg") : "jpg";
 }
 
+function normalizeVariantForDb(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 async function uploadProductImage(file: File) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
@@ -41,6 +47,7 @@ export async function addProduct(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const priceValue = String(formData.get("price") ?? "").trim();
   const manualPrimaryImageUrl = String(formData.get("imageUrl") ?? "").trim();
+  const imageVariant = normalizeVariantForDb(formData.get("imageVariant"));
 
   const uploadedFiles = formData
     .getAll("imageFiles")
@@ -95,6 +102,7 @@ export async function addProduct(formData: FormData) {
       image_url: imageUrl,
       sort_order: index,
       is_primary: index === 0,
+      variant: imageVariant,
     }));
 
     const { error: imageInsertError } = await supabaseServer
@@ -187,6 +195,8 @@ export async function updateProduct(formData: FormData) {
     .map((v) => String(v).trim())
     .filter(Boolean);
 
+  const removeSet = new Set(removeIds);
+
   if (removeIds.length) {
     const { data: rowsToRemoveData, error: selectRemoveError } =
       await supabaseServer
@@ -229,9 +239,32 @@ export async function updateProduct(formData: FormData) {
     }
   }
 
+  // Update existing image wood tags (variant)
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("image_variant_")) continue;
+
+    const imageId = key.slice("image_variant_".length).trim();
+    if (!imageId) continue;
+    if (removeSet.has(imageId)) continue;
+
+    const nextVariant = normalizeVariantForDb(value);
+
+    const { error } = await supabaseServer
+      .from("product_images")
+      .update({ variant: nextVariant })
+      .eq("product_id", id)
+      .eq("id", imageId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   const newFiles = formData
     .getAll("newImageFiles")
     .filter((v): v is File => v instanceof File && v.size > 0);
+
+  const newImagesVariant = normalizeVariantForDb(formData.get("newImagesVariant"));
 
   if (newFiles.length) {
     const { data: lastData, error: lastError } = await supabaseServer
@@ -262,6 +295,7 @@ export async function updateProduct(formData: FormData) {
       image_url: imageUrl,
       sort_order: startOrder + index,
       is_primary: false,
+      variant: newImagesVariant,
     }));
 
     const { error: insertError } = await supabaseServer

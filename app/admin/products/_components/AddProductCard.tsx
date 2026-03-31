@@ -33,6 +33,18 @@ export function AddProductCard() {
         />
 
         <div className="space-y-2 md:col-span-2">
+          <p className="text-xs uppercase tracking-[0.3em] text-background/60">
+            Image wood tag (optional)
+          </p>
+          <input
+            name="imageVariant"
+            type="text"
+            placeholder="Example: Walnut"
+            className="block w-full rounded-xl border border-background/15 bg-sandstone px-4 py-3 text-background outline-none"
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
           <input
             name="imageFiles"
             type="file"

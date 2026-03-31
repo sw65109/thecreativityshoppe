@@ -24,26 +24,29 @@ export default function ProductImageGallery({
     );
   }
 
+  const safeActiveIndex = Math.min(activeIndex, galleryImages.length - 1);
   const hasMultipleImages = galleryImages.length > 1;
-  const activeImage = galleryImages[activeIndex];
+  const activeImage = galleryImages[safeActiveIndex];
 
   function showPrevious() {
-    setActiveIndex((current) =>
-      current === 0 ? galleryImages.length - 1 : current - 1,
-    );
+    setActiveIndex((current) => {
+      const base = Math.min(current, galleryImages.length - 1);
+      return base === 0 ? galleryImages.length - 1 : base - 1;
+    });
   }
 
   function showNext() {
-    setActiveIndex((current) =>
-      current === galleryImages.length - 1 ? 0 : current + 1,
-    );
+    setActiveIndex((current) => {
+      const base = Math.min(current, galleryImages.length - 1);
+      return base === galleryImages.length - 1 ? 0 : base + 1;
+    });
   }
 
   return (
     <div className="flex flex-col-reverse gap-4 lg:flex-row">
       <div className="flex gap-3 overflow-x-auto lg:max-h-130 lg:w-28 lg:flex-col">
         {galleryImages.map((image, index) => {
-          const isActive = index === activeIndex;
+          const isActive = index === safeActiveIndex;
 
           return (
             <button
@@ -102,7 +105,7 @@ export default function ProductImageGallery({
 
             <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-background/75 px-4 py-2 text-sm font-medium text-sandstone">
               <span>
-                {activeIndex + 1} / {galleryImages.length}
+                {safeActiveIndex + 1} / {galleryImages.length}
               </span>
             </div>
           </>
