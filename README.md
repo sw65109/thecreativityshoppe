@@ -135,3 +135,15 @@ I’m keeping the README practical — basically the notes I use when I’m sett
   - If admin pages error: confirm `SUPABASE_SERVICE_ROLE_KEY` is set server-side and your `profiles.role` is `admin`.
 
 </details>
+<details>
+  <summary><strong>License</strong></summary>
+
+  - Code: MIT (see LICENSE)
+  - Content/brand assets: All Rights Reserved (see CONTENT-LICENSE.md)
+  - Trademark notice: see NOTICE.md
+
+  Note: the MIT License covers the software source code. It does not grant rights to trademarks, branding, product photography, or product descriptions.
+
+</details>
+
+
