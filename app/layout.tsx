@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { ContactModalProvider } from "./components/contact/ContactModalProvider";
 
 export const metadata = {
   title: "The Creativity Shoppe",
@@ -16,11 +17,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen overflow-x-hidden">
         <AuthProvider>
           <CartProvider>
-            <Suspense fallback={null}>
-              <Navbar />
-            </Suspense>
-            <main>{children}</main>
-            <Footer />
+            <ContactModalProvider>
+              <Suspense fallback={null}>
+                <Navbar />
+              </Suspense>
+              <main>{children}</main>
+              <Footer />
+            </ContactModalProvider>
           </CartProvider>
         </AuthProvider>
       </body>

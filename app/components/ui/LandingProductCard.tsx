@@ -25,7 +25,7 @@ export default function LandingProductCard({
   return (
     <Link
       href={`/products/${product.id}`}
-      className="w-64 rounded-xl bg-driftwood p-6 shadow transition hover:scale-[1.02]"
+      className="w-64 rounded-xl bg-sandstone p-6 shadow transition hover:scale-[1.02]"
     >
       <div className="relative h-48 w-full overflow-hidden rounded-lg">
         <Image

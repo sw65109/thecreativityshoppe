@@ -25,6 +25,8 @@ export type AdminDashboardDataResult =
       error: string;
     };
 
+const REVENUE_STATUSES: string[] = ["paid", "processing", "shipped", "completed"];
+
 export async function getAdminDashboardData(): Promise<AdminDashboardDataResult> {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -48,7 +50,8 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
     supabaseServer
       .from("orders")
       .select("total, created_at")
-      .gte("created_at", startOfMonth.toISOString()),
+      .gte("created_at", startOfMonth.toISOString())
+      .in("status", REVENUE_STATUSES),
     supabaseServer
       .from("orders")
       .select(
