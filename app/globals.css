@@ -4,14 +4,14 @@
   --background: #482029;
   --text-beige: #f3ede4;
   --background-secondary: #e9e7e2;
-  --walnut: #4A2C2A;
-  --cherrywood: #A45A3F;
-  --maple: #E7D7C1;
-  --olivewood: #C8A165;
-  --driftwood: #B8A99A;
-  --chestnut: #8B5A2B;
-  --sandstone: #DCC7A1;
-  --yellowheart: #F8E81C;
+  --walnut: #4a2c2a;
+  --cherrywood: #a45a3f;
+  --maple: #e7d7c1;
+  --olivewood: #c8a165;
+  --driftwood: #b8a99a;
+  --chestnut: #8b5a2b;
+  --sandstone: #dcc7a1;
+  --yellowheart: #f8e81c;
 }
 
 @theme inline {
@@ -44,4 +44,18 @@ body {
 
 button {
   cursor: pointer;
+}
+
+html {
+  min-height: 100%;
+  background-image: url("/textures/redwood_grain.jpg");
+  background-repeat: no-repeat;
+  background-position: left, center;
+  background-size: cover;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
 }

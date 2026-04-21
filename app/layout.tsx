@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ContactModalProvider } from "./components/contact/ContactModalProvider";
+import BackgroundSplashGate from "./components/BackgroundSplashGate";
 
 export const metadata = {
   title: "The Creativity Shoppe",
@@ -14,13 +15,16 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen overflow-x-hidden">
+      <body>
+      <BackgroundSplashGate minMs={250} />
         <AuthProvider>
           <CartProvider>
             <ContactModalProvider>
               <Suspense fallback={null}>
                 <Navbar />
               </Suspense>
+
+              <div className="h-0.5 w-full bg-sandstone/40" />
               <main>{children}</main>
               <Footer />
             </ContactModalProvider>

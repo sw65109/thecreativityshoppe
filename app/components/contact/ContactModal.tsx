@@ -74,7 +74,8 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               href={FACEBOOK_URL}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-2 text-lg font-semibold hover:underline underline-offset-4"
+              aria-label="Facebook"
+              className="mt-2 inline-flex items-center gap-2 text-lg font-semibold text-blue-700 hover:underline underline-offset-4"
             >
               <SiFacebook className="h-10 w-10" aria-hidden="true" />
             </a>

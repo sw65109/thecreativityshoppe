@@ -73,7 +73,7 @@ export default function ProductImageGallery({
         })}
       </div>
 
-      <div className="relative min-h-105 flex-1 overflow-hidden rounded-3xl bg-driftwood">
+      <div className="relative min-h-105 flex-1 overflow-hidden rounded-3xl bg-sandstone">
         <Image
           src={activeImage}
           alt={name}
