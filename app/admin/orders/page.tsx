@@ -1,5 +1,9 @@
 import { supabaseServer } from "@/lib/supabaseServer";
-import { ORDER_STATUS_OPTIONS, type CheckoutAddress, type OrderWithItems } from "@/types/order";
+import {
+  ORDER_STATUS_OPTIONS,
+  type CheckoutAddress,
+  type OrderWithItems,
+} from "@/types/order";
 import { changeOrderStatus } from "./actions";
 
 function formatCurrency(value: number | string | null) {
@@ -33,7 +37,7 @@ export default async function AdminOrdersPage() {
   const { data: orders, error } = await supabaseServer
     .from("orders")
     .select(
-      "id, order_number, user_id, customer_name, customer_email, customer_phone, is_gift, shipping_address, billing_address, status, total, created_at, order_items(id, order_id, product_id, product_name, product_price, quantity, line_total, created_at)",
+      "id, order_number, user_id, customer_name, customer_email, customer_phone, is_gift, shipping_address, billing_address, promo_code, subtotal, discount_total, status, total, created_at, order_items(id, order_id, product_id, product_name, product_price, quantity, line_total, created_at)",
     )
     .order("created_at", { ascending: false });
 
@@ -45,7 +49,9 @@ export default async function AdminOrdersPage() {
             Admin
           </p>
           <h2 className="mt-4 text-4xl font-semibold">Orders</h2>
-          <p className="mt-3 text-red-700">Failed to load orders: {error.message}</p>
+          <p className="mt-3 text-red-700">
+            Failed to load orders: {error.message}
+          </p>
         </div>
       </section>
     );
@@ -61,7 +67,8 @@ export default async function AdminOrdersPage() {
         </p>
         <h2 className="mt-4 text-4xl font-semibold">Orders</h2>
         <p className="mt-3 text-background/70">
-          Review live orders from Supabase, including fulfillment details, and update their status.
+          Review live orders from Supabase, including fulfillment details, and
+          update their status.
         </p>
       </div>
 
@@ -73,6 +80,9 @@ export default async function AdminOrdersPage() {
               new Set([normalizedStatus, ...ORDER_STATUS_OPTIONS]),
             );
 
+            const discountTotal = Number(order.discount_total ?? 0);
+            const hasDiscount = discountTotal > 0;
+
             return (
               <article
                 key={order.id}
@@ -80,8 +90,12 @@ export default async function AdminOrdersPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-6">
                   <div className="space-y-2">
-                    <h3 className="text-xl font-semibold">{order.customer_name}</h3>
-                    <p className="text-sm text-background/60">Order #{order.order_number}</p>
+                    <h3 className="text-xl font-semibold">
+                      {order.customer_name}
+                    </h3>
+                    <p className="text-sm text-background/60">
+                      Order #{order.order_number}
+                    </p>
                     <p className="text-sm text-background/70">
                       {order.customer_email}
                     </p>
@@ -90,7 +104,9 @@ export default async function AdminOrdersPage() {
                     </p>
 
                     <div className="flex flex-wrap gap-3 text-sm text-background/60">
-                      <span>{order.user_id ? "Account order" : "Guest order"}</span>
+                      <span>
+                        {order.user_id ? "Account order" : "Guest order"}
+                      </span>
                       <span>
                         {order.created_at
                           ? new Date(order.created_at).toLocaleString()
@@ -106,11 +122,34 @@ export default async function AdminOrdersPage() {
                   </div>
 
                   <div className="flex min-w-55 flex-col items-start gap-3">
-                    <p className="text-lg font-semibold">
-                      Total: {formatCurrency(order.total)}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-lg font-semibold">
+                        Total: {formatCurrency(order.total)}
+                      </p>
 
-                    <form action={changeOrderStatus} className="flex w-full gap-2">
+                      {order.promo_code ? (
+                        <p className="text-sm text-background/70">
+                          Promo: {order.promo_code}
+                        </p>
+                      ) : null}
+
+                      {order.subtotal != null ? (
+                        <p className="text-sm text-background/70">
+                          Subtotal: {formatCurrency(order.subtotal)}
+                        </p>
+                      ) : null}
+
+                      {hasDiscount ? (
+                        <p className="text-sm text-background/70">
+                          Discount: -{formatCurrency(discountTotal)}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <form
+                      action={changeOrderStatus}
+                      className="flex w-full gap-2"
+                    >
                       <input type="hidden" name="orderId" value={order.id} />
                       <select
                         name="status"
@@ -141,9 +180,9 @@ export default async function AdminOrdersPage() {
                     </p>
                     <div className="mt-3 space-y-1 text-background/80">
                       {formatAddressLines(order.shipping_address).length ? (
-                        formatAddressLines(order.shipping_address).map((line) => (
-                          <p key={line}>{line}</p>
-                        ))
+                        formatAddressLines(order.shipping_address).map(
+                          (line) => <p key={line}>{line}</p>,
+                        )
                       ) : (
                         <p>No shipping address stored.</p>
                       )}
@@ -156,9 +195,9 @@ export default async function AdminOrdersPage() {
                     </p>
                     <div className="mt-3 space-y-1 text-background/80">
                       {formatAddressLines(order.billing_address).length ? (
-                        formatAddressLines(order.billing_address).map((line) => (
-                          <p key={line}>{line}</p>
-                        ))
+                        formatAddressLines(order.billing_address).map(
+                          (line) => <p key={line}>{line}</p>,
+                        )
                       ) : (
                         <p>No billing address stored.</p>
                       )}
@@ -195,7 +234,10 @@ export default async function AdminOrdersPage() {
                         ))
                       ) : (
                         <tr>
-                          <td className="px-4 py-4 text-background/60" colSpan={4}>
+                          <td
+                            className="px-4 py-4 text-background/60"
+                            colSpan={4}
+                          >
                             No order items found.
                           </td>
                         </tr>

@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
-const PROTECTED_ADMIN_ID = "a85e214b-b408-44be-a21a-58ee06115b62";
+const PROTECTED_ADMIN_IDS = [
+  "a85e214b-b408-44be-a21a-58ee06115b62",
+  "4c96fe11-3f35-48da-b00f-3978ceb16d83"
+];
 
 export async function makeAdmin(formData: FormData) {
   await requireAdminServerAuthed();
@@ -34,7 +37,7 @@ export async function removeAdmin(formData: FormData) {
     throw new Error("User id is required.");
   }
 
-  if (userId === PROTECTED_ADMIN_ID) {
+  if (PROTECTED_ADMIN_IDS.includes(userId)) {
     throw new Error("This admin account is protected and cannot be demoted.");
   }
 

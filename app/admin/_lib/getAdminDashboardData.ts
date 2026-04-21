@@ -8,6 +8,9 @@ export type RecentOrder = {
   order_number: string | number | null;
   customer_name: string | null;
   customer_email: string | null;
+  promo_code?: string | null;
+  subtotal?: number | string | null;
+  discount_total?: number | string | null;
   status: string | null;
   total: number | string | null;
   created_at: string | null;
@@ -55,7 +58,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
     supabaseServer
       .from("orders")
       .select(
-        "id, order_number, customer_name, customer_email, status, total, created_at",
+        "id, order_number, customer_name, customer_email, promo_code, subtotal, discount_total, status, total, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(5),

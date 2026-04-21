@@ -29,7 +29,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (!initialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-sandstone">
+      <div className="min-h-screen flex items-center justify-center bg-[url('/textures/red_wood_grain.jpg')] bg-cover bg-center bg-no-repeat text-sandstone">
         Checking admin access...
       </div>
     );
@@ -37,7 +37,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-sandstone">
+      <div className="min-h-screen flex items-center justify-center bg-[url('/textures/red_wood_grain.jpg')] bg-cover bg-center bg-no-repeat text-sandstone">
         Redirecting...
       </div>
     );
