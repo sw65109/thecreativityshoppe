@@ -20,6 +20,7 @@ type CreateOrderRequest = {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  promoCode?: string;
   isGift?: boolean;
   shippingAddress?: unknown;
   billingAddress?: unknown;
@@ -297,9 +298,30 @@ Deno.serve(async (request: Request) => {
     };
   });
 
-  const total = toMoneyNumber(
+  const subtotal = toMoneyNumber(
     itemRows.reduce((sum, item) => sum + item.line_total, 0),
   );
+
+  const normalizedPromoCode =
+    normalizeOptionalText(payload.promoCode)?.toUpperCase() ?? null;
+
+  const allowedPromoCodes = new Set(["CRAFTSHOW10"]);
+
+  let discountTotal = 0;
+
+  if (normalizedPromoCode) {
+    if (!allowedPromoCodes.has(normalizedPromoCode)) {
+      return errorResponse("Invalid promo code.", 400);
+    }
+
+    if (subtotal < 50) {
+      return errorResponse("Promo code requires a $50+ subtotal.", 400);
+    }
+
+    discountTotal = toMoneyNumber(subtotal * 0.1);
+  }
+
+  const total = toMoneyNumber(subtotal - discountTotal);
 
   const { data: order, error: orderError } = await adminClient
     .from("orders")
@@ -311,6 +333,9 @@ Deno.serve(async (request: Request) => {
       is_gift: isGift,
       shipping_address: shippingAddress,
       billing_address: billingAddress,
+      promo_code: normalizedPromoCode,
+      subtotal,
+      discount_total: discountTotal,
       status: "pending",
       total,
     })
@@ -318,10 +343,7 @@ Deno.serve(async (request: Request) => {
     .single();
 
   if (orderError || !order) {
-    return errorResponse(
-      orderError?.message ?? "Failed to create order.",
-      500,
-    );
+    return errorResponse(orderError?.message ?? "Failed to create order.", 500);
   }
 
   const orderItemsPayload = itemRows.map((item) => ({

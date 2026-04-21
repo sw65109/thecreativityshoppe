@@ -41,6 +41,9 @@ export interface OrderWithItems {
   is_gift: boolean | null;
   shipping_address: CheckoutAddress | null;
   billing_address: CheckoutAddress | null;
+  promo_code?: string | null;
+  subtotal?: number | string | null;
+  discount_total?: number | string | null;
   status: OrderStatus;
   total: number;
   created_at: string;
@@ -76,6 +79,7 @@ export interface CreateOrderFunctionInput {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
+  promoCode?: string;
   isGift?: boolean;
   shippingAddress: CheckoutAddress;
   billingAddress?: CheckoutAddress | null;

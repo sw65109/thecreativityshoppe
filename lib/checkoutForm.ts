@@ -18,6 +18,7 @@ export type CheckoutOrderForm = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  promoCode: string;
   isGift: boolean;
   shippingAddress: CheckoutAddress;
   billingSameAsShipping: boolean;
@@ -41,6 +42,7 @@ export function createEmptyCheckoutForm(): CheckoutOrderForm {
     customerName: "",
     customerEmail: "",
     customerPhone: "",
+    promoCode: "",
     isGift: false,
     shippingAddress: createEmptyAddress(),
     billingSameAsShipping: true,

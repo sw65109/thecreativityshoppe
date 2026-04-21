@@ -96,6 +96,17 @@ export default function CheckoutForm({
             autoComplete="tel"
             className="rounded-xl border border-walnut/15 bg-sandstone/70 px-4 py-3 outline-none"
           />
+
+          <input
+            type="text"
+            value={form.promoCode}
+            onChange={(event) =>
+              onTopLevelChange("promoCode", event.target.value)
+            }
+            placeholder="Promo code (optional)"
+            autoComplete="off"
+            className="rounded-xl border border-walnut/15 bg-sandstone/70 px-4 py-3 outline-none"
+          />
         </div>
       </section>
 

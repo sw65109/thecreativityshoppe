@@ -2,18 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { formatPhoneNumber } from "@/lib/phone";
-import { supabase } from "@/lib/supabaseClient";
-import {
-  createEmptyCheckoutForm,
-  mapSavedAddressToCheckoutAddress,
-  validateCheckoutForm,
-} from "@/lib/checkoutForm";
-import type {
-  CheckoutOrderForm,
-  SavedAddressRecord,
-} from "@/lib/checkoutForm";
+import { createEmptyCheckoutForm, validateCheckoutForm } from "@/lib/checkoutForm";
+import type { CheckoutOrderForm, SavedAddressRecord } from "@/lib/checkoutForm";
 import type { CheckoutAddress } from "@/types/order";
+import { loadCheckoutData } from "@/app/hooks/checkout/_lib/loadCheckoutData";
+import { buildCheckoutDefaults } from "@/app/hooks/checkout/_lib/buildCheckoutDefaults";
+import { mapSavedAddressToCheckoutAddress } from "@/lib/checkoutForm";
 
 type UseCheckoutFormArgs = {
   user: User | null;
@@ -21,11 +15,7 @@ type UseCheckoutFormArgs = {
   loading: boolean;
 };
 
-export function useCheckoutForm({
-  user,
-  initialized,
-  loading,
-}: UseCheckoutFormArgs) {
+export function useCheckoutForm({ user, initialized, loading }: UseCheckoutFormArgs) {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressRecord[]>([]);
   const [selectedShippingAddressId, setSelectedShippingAddressId] = useState("");
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState("");
@@ -36,7 +26,7 @@ export function useCheckoutForm({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadCheckoutData() {
+    async function hydrate() {
       if (!initialized || loading) {
         return;
       }
@@ -49,79 +39,32 @@ export function useCheckoutForm({
           setForm(createEmptyCheckoutForm());
           setIsLoadingCheckoutData(false);
         }
-
         return;
       }
 
       setIsLoadingCheckoutData(true);
 
-      const [profileResult, addressesResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name, phone, email")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("addresses")
-          .select(
-            "id, label, full_name, line1, line2, city, state, postal_code, country, is_default_shipping, is_default_billing",
-          )
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      ]);
+      const { profile, addresses } = await loadCheckoutData(user.id);
 
       if (cancelled) {
         return;
       }
 
-      const profile = profileResult.data;
-      const addresses = (addressesResult.data ?? []) as SavedAddressRecord[];
-      const fallbackName =
-        profile?.display_name ||
-        (typeof user.user_metadata?.full_name === "string"
-          ? user.user_metadata.full_name
-          : "") ||
-        "";
-      const defaultShipping =
-        addresses.find((address) => address.is_default_shipping) ?? addresses[0];
-      const defaultBilling =
-        addresses.find((address) => address.is_default_billing) ??
-        defaultShipping ??
-        null;
-
-      const shippingAddress = defaultShipping
-        ? mapSavedAddressToCheckoutAddress(defaultShipping)
-        : {
-            fullName: fallbackName,
-            line1: "",
-            line2: "",
-            city: "",
-            state: "",
-            postalCode: "",
-            country: "US",
-          };
-
-      const billingAddress = defaultBilling
-        ? mapSavedAddressToCheckoutAddress(defaultBilling)
-        : shippingAddress;
-
-      setSavedAddresses(addresses);
-      setSelectedShippingAddressId(defaultShipping?.id ?? "");
-      setSelectedBillingAddressId(defaultBilling?.id ?? "");
-      setForm({
-        customerName: fallbackName,
-        customerEmail: profile?.email || user.email || "",
-        customerPhone: formatPhoneNumber(profile?.phone ?? ""),
-        isGift: false,
-        shippingAddress,
-        billingSameAsShipping: true,
-        billingAddress,
+      const defaults = buildCheckoutDefaults({
+        user,
+        profile,
+        addresses,
       });
+
+      setSavedAddresses(defaults.savedAddresses);
+      setSelectedShippingAddressId(defaults.selectedShippingAddressId);
+      setSelectedBillingAddressId(defaults.selectedBillingAddressId);
+      setForm(defaults.form);
       setValidationMessage(null);
       setIsLoadingCheckoutData(false);
     }
 
-    void loadCheckoutData();
+    void hydrate();
 
     return () => {
       cancelled = true;
@@ -162,10 +105,7 @@ export function useCheckoutForm({
     setSelectedShippingAddressId(id);
 
     const selectedAddress = savedAddresses.find((address) => address.id === id);
-
-    if (!selectedAddress) {
-      return;
-    }
+    if (!selectedAddress) return;
 
     setForm((current) => ({
       ...current,
@@ -177,10 +117,7 @@ export function useCheckoutForm({
     setSelectedBillingAddressId(id);
 
     const selectedAddress = savedAddresses.find((address) => address.id === id);
-
-    if (!selectedAddress) {
-      return;
-    }
+    if (!selectedAddress) return;
 
     setForm((current) => ({
       ...current,

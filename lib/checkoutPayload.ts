@@ -28,6 +28,7 @@ export function buildCheckoutPayload(
     customerName: form.customerName.trim(),
     customerEmail: form.customerEmail.trim(),
     customerPhone: digitsOnlyPhone(form.customerPhone) || undefined,
+    promoCode: form.promoCode.trim() || undefined,
     isGift: form.isGift,
     shippingAddress,
     billingAddress,
