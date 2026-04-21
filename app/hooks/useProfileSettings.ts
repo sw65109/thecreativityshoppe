@@ -6,12 +6,10 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { digitsOnlyPhone, formatPhoneNumber } from "@/lib/phone";
 import {
-  PROFILE_AVATAR_BUCKET,
   createCroppedAvatarFile,
-  getFileExtension,
-  getStorageAvatarPath,
   readFileAsDataUrl,
 } from "@/lib/avatar";
+import { deleteAvatarObject, uploadAvatar } from "@/app/hooks/profileSettings/avatarStorage";
 
 export type ProfileForm = {
   displayName: string;
@@ -25,10 +23,7 @@ type UseProfileSettingsArgs = {
   initialized: boolean;
 };
 
-export function useProfileSettings({
-  user,
-  initialized,
-}: UseProfileSettingsArgs) {
+export function useProfileSettings({ user, initialized }: UseProfileSettingsArgs) {
   const [form, setForm] = useState<ProfileForm>({
     displayName: "",
     phone: "",
@@ -37,12 +32,8 @@ export function useProfileSettings({
   });
   const [savedAvatarUrl, setSavedAvatarUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<
-    string | null
-  >(null);
-  const [pendingCropImageSrc, setPendingCropImageSrc] = useState<string | null>(
-    null,
-  );
+  const [selectedAvatarPreviewUrl, setSelectedAvatarPreviewUrl] = useState<string | null>(null);
+  const [pendingCropImageSrc, setPendingCropImageSrc] = useState<string | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -129,7 +120,7 @@ export function useProfileSettings({
     setFileInputKey((current) => current + 1);
   }
 
-  async function openAvatarCrop(file: File | null) {
+  function openAvatarCrop(file: File | null) {
     if (!file) {
       clearSelectedAvatarFile();
       return;
@@ -158,10 +149,7 @@ export function useProfileSettings({
     }
 
     try {
-      const croppedFile = await createCroppedAvatarFile(
-        selectedFile,
-        croppedAreaPixels,
-      );
+      const croppedFile = await createCroppedAvatarFile(selectedFile, croppedAreaPixels);
       const croppedPreviewUrl = await readFileAsDataUrl(croppedFile);
 
       clearSelectedAvatarPreview();
@@ -188,48 +176,6 @@ export function useProfileSettings({
     }
   }
 
-  async function uploadAvatar(file: File) {
-    if (!user) {
-      throw new Error("You must be signed in to upload a profile photo.");
-    }
-
-    const extension = getFileExtension(file.name);
-    const filePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .upload(filePath, file, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
-
-    const { data } = supabase.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  }
-
-  async function deleteAvatarObject(avatarUrl: string) {
-    const storagePath = getStorageAvatarPath(avatarUrl);
-
-    if (!storagePath) {
-      return;
-    }
-
-    const { error } = await supabase.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .remove([storagePath]);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-  }
-
   async function syncAuthMetadata(avatarUrl: string | null) {
     if (!user) {
       return null;
@@ -239,8 +185,7 @@ export function useProfileSettings({
       data: {
         ...user.user_metadata,
         avatar_url: avatarUrl,
-        full_name:
-          form.displayName.trim() || user.user_metadata?.full_name || null,
+        full_name: form.displayName.trim() || user.user_metadata?.full_name || null,
       },
     });
 
@@ -262,7 +207,7 @@ export function useProfileSettings({
     try {
       if (selectedFile) {
         setIsUploadingAvatar(true);
-        uploadedAvatarUrl = await uploadAvatar(selectedFile);
+        uploadedAvatarUrl = await uploadAvatar(user.id, selectedFile);
         avatarUrl = uploadedAvatarUrl;
       }
 
@@ -305,7 +250,6 @@ export function useProfileSettings({
         try {
           await deleteAvatarObject(uploadedAvatarUrl);
         } catch {
-          // Keep the original save error visible.
         }
       }
 
