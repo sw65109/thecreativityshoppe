@@ -305,7 +305,7 @@ Deno.serve(async (request: Request) => {
   const normalizedPromoCode =
     normalizeOptionalText(payload.promoCode)?.toUpperCase() ?? null;
 
-  const allowedPromoCodes = new Set(["CRAFTSHOW10"]);
+  const allowedPromoCodes = new Set(["2026"]);
 
   let discountTotal = 0;
 
