@@ -14,6 +14,7 @@ import {
 const PROTECTED_ADMIN_IDS = [
   "a85e214b-b408-44be-a21a-58ee06115b62",
   "4c96fe11-3f35-48da-b00f-3978ceb16d83",
+  "9086b6e8-a544-4f4a-ba4d-d0ba031165be",
 ] as readonly string[];
 
 function formatCreatedDate(value: string | null) {
