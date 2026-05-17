@@ -2,12 +2,18 @@ import type { PriceRange, ShopCategory } from "./types";
 
 export const CATEGORY_OPTIONS: Array<{ value: ShopCategory; label: string }> = [
   { value: "all", label: "All Items" },
+
+  { value: "bowls", label: "Bowls" },
+  { value: "candles-holders", label: "Candles & Holders" },
   { value: "hand-crafts", label: "Hand Crafts" },
-  { value: "accessories", label: "Accessories" },
+  { value: "kitchen-utensils", label: "Kitchen Utensils" },
+  { value: "ornaments", label: "Ornaments" },
+  { value: "platters-trays", label: "Platters & Trays" },
   { value: "rolling-pins", label: "Rolling Pins" },
-  { value: "platters-and-trays", label: "Platters and Trays" },
-  { value: "wooden-bowls", label: "Wooden Bowls" },
-  { value: "home-decor", label: "Home Decor" },
+  { value: "salt-pepper-shakers", label: "Salt & Pepper Shakers" },
+  { value: "vases-vessels", label: "Vases & Vessels" },
+  { value: "pens", label: "Pens" },
+  { value: "accessories", label: "Accessories" },
 ];
 
 export const PRICE_OPTIONS: Array<{ value: PriceRange; label: string }> = [

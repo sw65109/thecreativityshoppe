@@ -4,6 +4,7 @@ import {
   CATEGORY_OPTIONS,
   PRICE_OPTIONS,
   buildShopHref,
+  getShopCategoryFilterLinks,
   type PriceRange,
   type ShopCategory,
   type ShopSearchParams,
@@ -15,22 +16,26 @@ type ShopFilterRailProps = {
   price: PriceRange;
 };
 
-export function ShopFilterRail({ params, category, price }: ShopFilterRailProps) {
+export function ShopFilterRail({ params, price }: ShopFilterRailProps) {
+  const currentHref = buildShopHref(params, {});
+  const categoryLinks = getShopCategoryFilterLinks(params, CATEGORY_OPTIONS);
+
   return (
     <aside className="text-black">
       <h2 className="text-2xl font-semibold">Browse by category</h2>
 
       <div className="mt-4 space-y-3 text-xl">
-        {CATEGORY_OPTIONS.map((option) => {
-          const isActive = category === option.value;
+        {categoryLinks.map((link) => {
+          const isActive = currentHref === link.href;
 
           return (
             <Link
-              key={option.value}
-              href={buildShopHref(params, { category: option.value })}
+              key={link.key}
+              href={link.href}
+              aria-current={isActive ? "page" : undefined}
               className={isActive ? "block font-semibold" : "block"}
             >
-              {option.label}
+              {link.label}
             </Link>
           );
         })}
@@ -51,7 +56,7 @@ export function ShopFilterRail({ params, category, price }: ShopFilterRailProps)
             return (
               <Link
                 key={option.value}
-                href={buildShopHref(params, { price: option.value })}
+                href={buildShopHref(params, { price: option.value, view: "products" })}
                 className={isActive ? "block font-semibold" : "block"}
               >
                 {option.label}
@@ -92,11 +97,7 @@ export function ShopFilterRail({ params, category, price }: ShopFilterRailProps)
         </summary>
 
         <div className="mt-4">
-          <ShopParamCheckbox
-            param="availability"
-            checkedValue="instock"
-            label="In Stock"
-          />
+          <ShopParamCheckbox param="availability" checkedValue="instock" label="In Stock" />
         </div>
       </details>
 

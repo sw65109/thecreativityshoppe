@@ -18,53 +18,80 @@ export function getFeaturedRank(productName: string) {
 }
 
 export function getProductCategory(productName: string): ShopCategory {
-  const normalizedName = productName.trim().toLowerCase();
+  const name = productName.trim().toLowerCase();
 
-  if (normalizedName.includes("rolling pin")) return "rolling-pins";
-  if (normalizedName.includes("platter") || normalizedName.includes("tray"))
-    return "platters-and-trays";
-  if (normalizedName.includes("bowl")) return "wooden-bowls";
+  if (name.includes("rolling pin")) return "rolling-pins";
 
-  if (
-    normalizedName.includes("board wax") ||
-    normalizedName.includes("weller") ||
-    normalizedName.includes("salt") ||
-    normalizedName.includes("pepper") ||
-    normalizedName.includes("shaker")
-  ) {
-    return "accessories";
+  if (name.includes("platter") || name.includes("tray")) return "platters-trays";
+
+  if (name.includes("bowl")) return "bowls";
+
+  if (name.includes("vase") || name.includes("vessel")) return "vases-vessels";
+
+  if (name.includes("shaker") || name.includes("salt") || name.includes("pepper")) {
+    return "salt-pepper-shakers";
   }
 
-  if (normalizedName.includes("vase")) {
-    return "home-decor";
+  if (name.includes("candle") || name.includes("holder")) {
+    return "candles-holders";
+  }
+
+  if (name.includes("ornament")) {
+    return "ornaments";
+  }
+
+  if (
+    name.includes("utensil") ||
+    name.includes("spoon") ||
+    name.includes("spatula") ||
+    name.includes("ladle") ||
+    name.includes("turner") ||
+    name.includes("scoop")
+  ) {
+    return "kitchen-utensils";
+  }
+
+  if (/\bpens?\b/.test(name)) {
+    return "pens";
   }
 
   const isHandCraft =
-    normalizedName.includes("seam ripper") ||
-    normalizedName.includes("crochet hook") ||
-    /\bpens?\b/.test(normalizedName);
+    name.includes("seam ripper") ||
+    name.includes("crochet hook") ||
+    name.includes("awl");
 
   if (isHandCraft) {
     return "hand-crafts";
   }
 
-  if (normalizedName.includes("decor") || normalizedName.includes("shaker")) {
-    return "home-decor";
+  if (
+    name.includes("board wax") ||
+    name.includes("weller") ||
+    name.includes("seam ripper head") ||
+    name.includes("crochet hook head") ||
+    name.includes("awl head")
+  ) {
+    return "accessories";
   }
 
-  return "home-decor";
+  return "accessories";
 }
 
 export function getSelectedCategory(value?: string): ShopCategory {
   const normalized = value?.trim().toLowerCase();
 
   if (
+    normalized === "bowls" ||
+    normalized === "candles-holders" ||
     normalized === "hand-crafts" ||
-    normalized === "accessories" ||
+    normalized === "kitchen-utensils" ||
+    normalized === "ornaments" ||
+    normalized === "platters-trays" ||
     normalized === "rolling-pins" ||
-    normalized === "platters-and-trays" ||
-    normalized === "wooden-bowls" ||
-    normalized === "home-decor"
+    normalized === "salt-pepper-shakers" ||
+    normalized === "vases-vessels" ||
+    normalized === "pens" ||
+    normalized === "accessories"
   ) {
     return normalized;
   }
@@ -95,17 +122,11 @@ export function getSelectedDeals(value?: string): DealsFilter {
   return value?.trim().toLowerCase() === "sale" ? "sale" : "all";
 }
 
-export function matchesCategory(
-  product: StorefrontProduct,
-  category: ShopCategory,
-) {
+export function matchesCategory(product: StorefrontProduct, category: ShopCategory) {
   return category === "all" ? true : product.category === category;
 }
 
-export function matchesPriceRange(
-  product: StorefrontProduct,
-  priceRange: PriceRange,
-) {
+export function matchesPriceRange(product: StorefrontProduct, priceRange: PriceRange) {
   switch (priceRange) {
     case "under-25":
       return product.price < 25;
@@ -121,13 +142,10 @@ export function matchesPriceRange(
   }
 }
 
-export function matchesAvailability(
-  product: StorefrontProduct,
-  availability: AvailabilityFilter,
-) {
-  return availability === "instock" ? product.inStock : true;
+export function matchesAvailability(product: StorefrontProduct, availability: AvailabilityFilter) {
+  return availability === "all" ? true : product.inStock;
 }
 
 export function matchesDeals(product: StorefrontProduct, deals: DealsFilter) {
-  return deals === "sale" ? product.onSale : true;
+  return deals === "all" ? true : product.onSale;
 }

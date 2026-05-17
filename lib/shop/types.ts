@@ -2,12 +2,17 @@ import type { Product } from "@/types/product";
 
 export type ShopCategory =
   | "all"
+  | "bowls"
+  | "candles-holders"
   | "hand-crafts"
-  | "accessories"
+  | "kitchen-utensils"
+  | "ornaments"
+  | "platters-trays"
   | "rolling-pins"
-  | "platters-and-trays"
-  | "wooden-bowls"
-  | "home-decor";
+  | "salt-pepper-shakers"
+  | "vases-vessels"
+  | "pens"
+  | "accessories";
 
 export type PriceRange =
   | "all"
@@ -26,6 +31,9 @@ export type ShopSearchParams = {
   price?: string;
   availability?: string;
   deals?: string;
+
+  view?: string;
+  subcategory?: string;
 };
 
 export type StorefrontProduct = Product & {
