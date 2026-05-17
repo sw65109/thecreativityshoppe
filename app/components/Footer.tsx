@@ -228,7 +228,7 @@ export default function Footer() {
           </p>
 
           <p className=" mb-10 text-lg font-bold text-sandstone">
-            All items are handmade; grain/color will vary from photos. Woods used vary
+            All items are handmade, grain/color may vary from photos. Woods used vary
             by product and availability. Any wood name shown in the product
             options/description is the wood used for that item. We use responsibly
             sourced materials and avoid restricted species. We comply with all U.S.
