@@ -60,7 +60,15 @@ export default function FeaturedProducts({
                 </p>
               ) : null}
 
-              <p className="text-walnut font-medium mt-3">${product.price}</p>
+              {product.price > 0 ? (
+                <p className="text-chestnut mt-3 font-medium">
+                  ${product.price.toFixed(2)}
+                </p>
+              ) : (
+                <p className="text-chestnut mt-3 font-medium">
+                  Price coming soon
+                </p>
+              )}
             </Link>
           ))}
         </div>

@@ -42,11 +42,15 @@ export default function LandingProductCard({
         Featured Product
       </p>
 
-      <h3 className="mt-2 text-xl font-semibold text-walnut">
-        {product.name}
-      </h3>
+      <h3 className="mt-2 text-xl font-semibold text-walnut">{product.name}</h3>
 
-      <p className="mt-3 font-medium text-walnut">${product.price}</p>
+      {product.price > 0 ? (
+        <p className="text-chestnut mt-3 font-medium">
+          ${product.price.toFixed(2)}
+        </p>
+      ) : (
+        <p className="text-chestnut mt-3 font-medium">Price coming soon</p>
+      )}
     </Link>
   );
 }

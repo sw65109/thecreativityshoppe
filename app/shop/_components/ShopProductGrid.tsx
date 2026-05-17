@@ -11,7 +11,11 @@ export function ShopProductGrid({ products }: ShopProductGridProps) {
     <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 xl:grid-cols-3">
       {products.length ? (
         products.map((product) => (
-          <Link key={product.id} href={`/products/${product.id}`} className="group">
+          <Link
+            key={product.id}
+            href={`/products/${product.id}`}
+            className="group"
+          >
             <div className="bg-sandstone rounded-xl overflow-hidden shadow-sm hover:shadow-md transition">
               <div className="relative w-full h-96">
                 <Image
@@ -29,7 +33,15 @@ export function ShopProductGrid({ products }: ShopProductGridProps) {
                   {product.name}
                 </h3>
 
-                <p className="text-chestnut mt-3 font-medium">${product.price}</p>
+                {product.price > 0 ? (
+                  <p className="text-chestnut mt-3 font-medium">
+                    ${product.price.toFixed(2)}
+                  </p>
+                ) : (
+                  <p className="text-chestnut mt-3 font-medium">
+                    Price coming soon
+                  </p>
+                )}
               </div>
             </div>
           </Link>

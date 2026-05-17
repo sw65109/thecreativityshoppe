@@ -21,7 +21,7 @@ export function AddProductCard() {
           min="0"
           placeholder="Price"
           className="rounded-xl border border-background/15 bg-sandstone px-4 py-3 text-background outline-none"
-          required
+          // required
         />
 
         <textarea
