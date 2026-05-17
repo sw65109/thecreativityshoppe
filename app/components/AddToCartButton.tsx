@@ -13,6 +13,9 @@ type AddToCartButtonProps = {
 
   variantLabel?: string;
   variantOptions?: string[];
+
+  secondaryVariantLabel?: string;
+  secondaryVariantOptions?: string[];
 };
 
 function normalizeVariant(value: string) {
@@ -37,6 +40,8 @@ export default function AddToCartButton({
   image,
   variantLabel,
   variantOptions,
+  secondaryVariantLabel,
+  secondaryVariantOptions,
 }: AddToCartButtonProps) {
   const { addItem } = useCart();
   const router = useRouter();
@@ -51,6 +56,14 @@ export default function AddToCartButton({
     return coerceToOption(fromUrl, options) ?? options[0] ?? "";
   }, [searchParams, variantOptions]);
 
+  const effectiveSecondaryVariant = useMemo(() => {
+    const options = secondaryVariantOptions ?? [];
+    if (!options.length) return "";
+
+    const fromUrl = searchParams.get("mechanism") ?? "";
+    return coerceToOption(fromUrl, options) ?? options[0] ?? "";
+  }, [searchParams, secondaryVariantOptions]);
+
   function setVariantInUrl(next: string) {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -64,14 +77,43 @@ export default function AddToCartButton({
     router.replace(query ? `?${query}` : "?", { scroll: false });
   }
 
+  function setSecondaryVariantInUrl(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (next) {
+      params.set("mechanism", next);
+    } else {
+      params.delete("mechanism");
+    }
+
+    const query = params.toString();
+    router.replace(query ? `?${query}` : "?", { scroll: false });
+  }
+
   function handleAddToCart() {
+    const variantParts: string[] = [];
+
+    if (variantOptions?.length) {
+      variantParts.push(`${variantLabel ?? "Wood"}: ${effectiveVariant}`);
+    }
+
+    if (secondaryVariantOptions?.length) {
+      variantParts.push(
+        `${secondaryVariantLabel ?? "Mechanism"}: ${effectiveSecondaryVariant}`,
+      );
+    }
+
+    const combinedVariant = variantParts.length
+      ? variantParts.join(" • ")
+      : undefined;
+
     addItem({
       id,
       name,
       price,
       image,
       quantity: 1,
-      variant: variantOptions?.length ? effectiveVariant : undefined,
+      variant: combinedVariant,
     });
 
     setAdded(true);
@@ -94,6 +136,25 @@ export default function AddToCartButton({
             className="w-full rounded-xl border border-background/20 bg-sandstone/70 px-4 py-3 text-background outline-none"
           >
             {variantOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {secondaryVariantOptions?.length ? (
+        <div className="max-w-sm">
+          <label className="mb-2 block text-sm font-semibold text-background/80">
+            {secondaryVariantLabel ?? "Mechanism"}
+          </label>
+          <select
+            value={effectiveSecondaryVariant}
+            onChange={(event) => setSecondaryVariantInUrl(event.target.value)}
+            className="w-full rounded-xl border border-background/20 bg-sandstone/70 px-4 py-3 text-background outline-none"
+          >
+            {secondaryVariantOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
