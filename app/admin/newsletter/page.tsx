@@ -47,7 +47,7 @@ export default async function AdminNewsletterPage() {
 
       <div className="rounded-2xl border border-background/15 bg-background/10">
         <div className="overflow-x-auto">
-          <table className="min-w-[640px] w-full text-sm">
+          <table className="min-w-160 w-full text-sm">
             <thead className="text-left text-background/70">
               <tr>
                 <th className="px-5 py-4 font-semibold">Email</th>
