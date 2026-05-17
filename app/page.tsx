@@ -13,6 +13,14 @@ type ProductRow = {
   created_at: string;
 };
 
+type CraftShowRow = {
+  id: string;
+  name: string;
+  location: string | null;
+  start_date: string;
+  end_date: string | null;
+};
+
 async function getStorefrontProducts(): Promise<Product[]> {
   const { data, error } = await supabaseServer
     .from("products")
@@ -36,12 +44,30 @@ async function getStorefrontProducts(): Promise<Product[]> {
   return products.length ? products : mockProducts;
 }
 
+async function getUpcomingCraftShows(): Promise<CraftShowRow[]> {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const { data, error } = await supabaseServer
+    .from("craft_shows")
+    .select("id, name, location, start_date, end_date")
+    .eq("is_active", true)
+    .gte("start_date", today)
+    .order("start_date", { ascending: true })
+    .order("sort_order", { ascending: true })
+
+  if (error) return [];
+  return (data ?? []) as CraftShowRow[];
+}
+
 export default async function Home() {
-  const products = await getStorefrontProducts();
+  const [products, craftShows] = await Promise.all([
+    getStorefrontProducts(),
+    getUpcomingCraftShows(),
+  ]);
 
   return (
     <div>
-      <Landing products={products} />
+      <Landing products={products} craftShows={craftShows} />
       <FeaturedProducts products={products} />
     </div>
   );
