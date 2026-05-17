@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useAuth } from "@/app/context/AuthContext";
 import CheckoutForm from "@/app/components/checkout/CheckoutForm";
+import type { SquareCardPaymentHandle } from "@/app/components/checkout/SquareCardPayment";
 import { useCheckoutForm } from "@/app/hooks/useCheckoutForm";
 import { CheckoutEmptyCart } from "./_components/CheckoutEmptyCart";
 import { CheckoutLoading } from "./_components/CheckoutLoading";
@@ -13,6 +15,8 @@ import { useCheckoutSubmit } from "./_hooks/useCheckoutSubmit";
 export default function CheckoutPage() {
   const { items, ready, subtotal, clearCart } = useCart();
   const { user, initialized, loading } = useAuth();
+
+  const squarePaymentRef = useRef<SquareCardPaymentHandle | null>(null);
 
   const {
     form,
@@ -41,6 +45,18 @@ export default function CheckoutPage() {
     validate,
     clearCart,
     resetGuestForm,
+    tokenizeCard: async () => {
+      const started = Date.now();
+    
+      while (!squarePaymentRef.current) {
+        if (Date.now() - started > 8000) {
+          throw new Error("Payment form is not ready yet.");
+        }
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    
+      return squarePaymentRef.current.tokenize();
+    },
   });
 
   if (!ready || !initialized || loading || isLoadingCheckoutData) {
@@ -79,6 +95,7 @@ export default function CheckoutPage() {
               onSelectShippingAddress={selectShippingAddress}
               onSelectBillingAddress={selectBillingAddress}
               onSubmit={handleCheckout}
+              squarePaymentRef={squarePaymentRef}
             />
 
             {checkoutMessage ? (
@@ -89,7 +106,7 @@ export default function CheckoutPage() {
           </div>
 
           <aside className="space-y-6">
-            <CheckoutOrderSummary subtotal={subtotal} />
+          <CheckoutOrderSummary subtotal={subtotal} promoCode={form.promoCode} />
             <CheckoutItems items={items} />
           </aside>
         </div>

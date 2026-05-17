@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import type { RefObject } from "react";
 import type { User } from "@supabase/supabase-js";
 import CheckoutAddressFields from "@/app/components/checkout/CheckoutAddressFields";
 import SavedAddressPicker from "@/app/components/checkout/SavedAddressPicker";
 import type { CheckoutOrderForm, SavedAddressRecord } from "@/lib/checkoutForm";
 import { formatPhoneNumber } from "@/lib/phone";
 import type { CheckoutAddress } from "@/types/order";
+import SquareCardPayment, {
+  type SquareCardPaymentHandle,
+} from "@/app/components/checkout/SquareCardPayment";
 
 type TopLevelFieldUpdater = <K extends keyof CheckoutOrderForm>(
   field: K,
@@ -26,7 +30,8 @@ type CheckoutFormProps = {
   onBillingChange: (field: keyof CheckoutAddress, value: string) => void;
   onSelectShippingAddress: (id: string) => void;
   onSelectBillingAddress: (id: string) => void;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
+  squarePaymentRef: RefObject<SquareCardPaymentHandle | null>;
 };
 
 export default function CheckoutForm({
@@ -43,6 +48,7 @@ export default function CheckoutForm({
   onSelectShippingAddress,
   onSelectBillingAddress,
   onSubmit,
+  squarePaymentRef,
 }: CheckoutFormProps) {
   const hasSavedAddresses = Boolean(user && savedAddresses.length);
   const shippingTitle = form.isGift
@@ -197,6 +203,12 @@ export default function CheckoutForm({
         )}
       </section>
 
+      <section className="rounded-4xl bg-driftwood p-6 text-walnut">
+        <div className="relative overflow-visible">
+          <SquareCardPayment ref={squarePaymentRef} />
+        </div>
+      </section>
+
       <section className="rounded-4xl border border-walnut/15 bg-driftwood p-6 text-walnut">
         {validationMessage ? (
           <div className="mt-5 rounded-2xl border border-red-700/20 bg-red-100 px-4 py-3 text-sm text-red-800">
@@ -207,7 +219,7 @@ export default function CheckoutForm({
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={onSubmit}
+            onClick={() => void onSubmit()}
             disabled={isCheckingOut}
             className="rounded-full bg-background px-8 py-3 font-semibold text-sandstone transition hover:opacity-90 disabled:opacity-60"
           >

@@ -225,7 +225,8 @@ Deno.serve(async (request: Request) => {
       ? metadataFullName.trim()
       : null;
 
-  const customerName = normalizeOptionalText(payload.customerName) ?? fallbackName;
+  const customerName =
+    normalizeOptionalText(payload.customerName) ?? fallbackName;
 
   if (!customerName) {
     return errorResponse("Customer name is required.", 400);
@@ -321,26 +322,32 @@ Deno.serve(async (request: Request) => {
     discountTotal = toMoneyNumber(subtotal * 0.1);
   }
 
-  const total = toMoneyNumber(subtotal - discountTotal);
+  const TAX_RATE = 0.0885;
+
+  const discountedSubtotal = toMoneyNumber(subtotal - discountTotal);
+  const taxTotal = toMoneyNumber(discountedSubtotal * TAX_RATE);
+  const total = toMoneyNumber(discountedSubtotal + taxTotal);
 
   const { data: order, error: orderError } = await adminClient
-    .from("orders")
-    .insert({
-      user_id: user?.id ?? null,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      customer_phone: customerPhone,
-      is_gift: isGift,
-      shipping_address: shippingAddress,
-      billing_address: billingAddress,
-      promo_code: normalizedPromoCode,
-      subtotal,
-      discount_total: discountTotal,
-      status: "pending",
-      total,
-    })
-    .select("id, order_number")
-    .single();
+  .from("orders")
+  .insert({
+    user_id: user?.id ?? null,
+    customer_name: customerName,
+    customer_email: customerEmail,
+    customer_phone: customerPhone,
+    is_gift: isGift,
+    shipping_address: shippingAddress,
+    billing_address: billingAddress,
+    promo_code: normalizedPromoCode,
+    subtotal,
+    discount_total: discountTotal,
+    tax_rate: TAX_RATE,
+    tax_total: taxTotal,
+    status: "pending",
+    total,
+  })
+  .select("id, order_number")
+  .single();
 
   if (orderError || !order) {
     return errorResponse(orderError?.message ?? "Failed to create order.", 500);
@@ -363,6 +370,9 @@ Deno.serve(async (request: Request) => {
   return jsonResponse({
     orderId: order.id,
     orderNumber: order.order_number,
+    subtotal,
+    discountTotal,
+    taxTotal,
     total,
     itemCount: itemRows.reduce((sum, item) => sum + item.quantity, 0),
   });

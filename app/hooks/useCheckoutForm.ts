@@ -23,6 +23,8 @@ export function useCheckoutForm({ user, initialized, loading }: UseCheckoutFormA
   const [isLoadingCheckoutData, setIsLoadingCheckoutData] = useState(true);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -31,7 +33,7 @@ export function useCheckoutForm({ user, initialized, loading }: UseCheckoutFormA
         return;
       }
 
-      if (!user) {
+      if (!userId) {
         if (!cancelled) {
           setSavedAddresses([]);
           setSelectedShippingAddressId("");
@@ -44,14 +46,14 @@ export function useCheckoutForm({ user, initialized, loading }: UseCheckoutFormA
 
       setIsLoadingCheckoutData(true);
 
-      const { profile, addresses } = await loadCheckoutData(user.id);
+      const { profile, addresses } = await loadCheckoutData(userId);
 
       if (cancelled) {
         return;
       }
 
       const defaults = buildCheckoutDefaults({
-        user,
+        user: user as User,
         profile,
         addresses,
       });
@@ -69,7 +71,7 @@ export function useCheckoutForm({ user, initialized, loading }: UseCheckoutFormA
     return () => {
       cancelled = true;
     };
-  }, [initialized, loading, user]);
+  }, [initialized, loading, userId]);
 
   function updateTopLevelField<K extends keyof CheckoutOrderForm>(
     field: K,

@@ -35,12 +35,17 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
+  const startOfYear = new Date();
+  startOfYear.setMonth(0, 1); // Jan 1
+  startOfYear.setHours(0, 0, 0, 0);
+
   const [
     productsResult,
     usersResult,
     ordersCountResult,
     openOrdersResult,
     monthlyRevenueResult,
+    taxYtdResult,
     recentOrdersResult,
   ] = await Promise.all([
     supabaseServer.from("products").select("*", { count: "exact", head: true }),
@@ -57,6 +62,11 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
       .in("status", REVENUE_STATUSES),
     supabaseServer
       .from("orders")
+      .select("tax_total, created_at")
+      .gte("created_at", startOfYear.toISOString())
+      .in("status", REVENUE_STATUSES),
+    supabaseServer
+      .from("orders")
       .select(
         "id, order_number, customer_name, customer_email, promo_code, subtotal, discount_total, status, total, created_at",
       )
@@ -70,6 +80,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
     ordersCountResult.error ||
     openOrdersResult.error ||
     monthlyRevenueResult.error ||
+    taxYtdResult.error ||
     recentOrdersResult.error;
 
   if (dashboardError) {
@@ -81,11 +92,17 @@ export async function getAdminDashboardData(): Promise<AdminDashboardDataResult>
     0,
   );
 
+  const taxYtd = (taxYtdResult.data ?? []).reduce(
+    (sum, order) => sum + Number((order as { tax_total?: unknown }).tax_total ?? 0),
+    0,
+  );
+
   const cards: DashboardCard[] = [
     { title: "Products", value: String(productsResult.count ?? 0) },
     { title: "Orders", value: String(ordersCountResult.count ?? 0) },
     { title: "Users", value: String(usersResult.count ?? 0) },
     { title: "Revenue", value: formatCurrency(monthlyRevenue) },
+    { title: "Tax (YTD)", value: formatCurrency(taxYtd) },
   ];
 
   return {
