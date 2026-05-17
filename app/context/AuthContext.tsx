@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -31,9 +32,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
+  const userIdRef = useRef<string | null>(null);
+  const roleRef = useRef<UserRole | null>(null);
+
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user?.id]);
+
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
+
   async function syncAuthState(
     nextUser: User | null,
-    options?: { showLoading?: boolean; markInitialized?: boolean }
+    options?: { showLoading?: boolean; markInitialized?: boolean },
   ) {
     const showLoading = options?.showLoading ?? true;
     const markInitialized = options?.markInitialized ?? false;
@@ -42,31 +54,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
     }
 
+    const prevUserId = userIdRef.current;
+    const nextUserId = nextUser?.id ?? null;
+
+    if (prevUserId === nextUserId) {
+      if (!nextUserId) {
+        setRole(null);
+        roleRef.current = null;
+        setLoading(false);
+        if (markInitialized) setInitialized(true);
+        return;
+      }
+
+      if (roleRef.current === null) {
+        try {
+          const nextRole = await getUserRole(nextUserId);
+          setRole(nextRole);
+          roleRef.current = nextRole;
+        } catch (error) {
+          console.error("Failed to load profile role:", error);
+          setRole("customer");
+          roleRef.current = "customer";
+        } finally {
+          setLoading(false);
+          if (markInitialized) setInitialized(true);
+        }
+        return;
+      }
+
+      setLoading(false);
+      if (markInitialized) setInitialized(true);
+      return;
+    }
+
     setUser(nextUser);
+    userIdRef.current = nextUserId;
 
     if (!nextUser) {
       setRole(null);
+      roleRef.current = null;
       setLoading(false);
-
-      if (markInitialized) {
-        setInitialized(true);
-      }
-
+      if (markInitialized) setInitialized(true);
       return;
     }
 
     try {
       const nextRole = await getUserRole(nextUser.id);
       setRole(nextRole);
+      roleRef.current = nextRole;
     } catch (error) {
       console.error("Failed to load profile role:", error);
       setRole("customer");
+      roleRef.current = "customer";
     } finally {
       setLoading(false);
-
-      if (markInitialized) {
-        setInitialized(true);
-      }
+      if (markInitialized) setInitialized(true);
     }
   }
 
@@ -76,9 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function loadInitialSession() {
       const { data } = await supabase.auth.getSession();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       void syncAuthState(data.session?.user ?? null, {
         showLoading: true,
@@ -87,15 +127,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     async function refreshSessionFromVisibility() {
-      if (!mounted || document.visibilityState !== "visible") {
-        return;
-      }
+      if (!mounted || document.visibilityState !== "visible") return;
 
       const { data } = await supabase.auth.getSession();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       void syncAuthState(data.session?.user ?? null, {
         showLoading: false,
@@ -105,22 +141,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void loadInitialSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) {
-        return;
-      }
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
 
-      window.setTimeout(() => {
-        if (!mounted) {
-          return;
-        }
+        window.setTimeout(() => {
+          if (!mounted) return;
 
-        void syncAuthState(session?.user ?? null, {
-          showLoading: false,
-          markInitialized: true,
-        });
-      }, 0);
-    });
+          void syncAuthState(session?.user ?? null, {
+            showLoading: false,
+            markInitialized: true,
+          });
+        }, 0);
+      },
+    );
 
     window.addEventListener("focus", refreshSessionFromVisibility);
     document.addEventListener("visibilitychange", refreshSessionFromVisibility);
@@ -130,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("focus", refreshSessionFromVisibility);
       document.removeEventListener(
         "visibilitychange",
-        refreshSessionFromVisibility
+        refreshSessionFromVisibility,
       );
       listener.subscription.unsubscribe();
     };
@@ -142,13 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
 
-    if (error) {
-      throw error;
-    }
-
-    if (!data.user) {
-      throw new Error("No user returned from login.");
-    }
+    if (error) throw error;
+    if (!data.user) throw new Error("No user returned from login.");
 
     return data.user;
   }
@@ -162,22 +191,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     return data.user;
   }
 
   async function logout() {
     const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     setUser(null);
+    userIdRef.current = null;
+
     setRole(null);
+    roleRef.current = null;
   }
 
   async function resendConfirmation(email: string) {
@@ -189,9 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   return (

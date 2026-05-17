@@ -55,6 +55,13 @@ export default function LoginPage() {
           onChange={(event) => setPassword(event.target.value)}
         />
 
+        <Link
+          href="/forgot-password"
+          className="text-red-500 text-lg font-bold underline"
+        >
+          Forgot password?
+        </Link>
+
         <button
           type="submit"
           disabled={submitting}
@@ -65,7 +72,10 @@ export default function LoginPage() {
 
         <p className="text-center">
           Don’t have an account?{" "}
-          <Link href="/signup" className="text-red-500 text-lg font-bold underline">
+          <Link
+            href="/signup"
+            className="text-red-500 text-lg font-bold underline"
+          >
             Sign up
           </Link>
         </p>
