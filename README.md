@@ -25,7 +25,8 @@ I’m keeping the README practical — basically the notes I use when I’m sett
   <summary><strong>What’s In Here</strong></summary>
 
   - Storefront pages (home, shop listing, product detail)
-  - Cart + checkout flow
+  - Cart + checkout flow (Square)
+  - Order confirmation email + cancellation link
   - Account pages (profile, addresses, orders, security)
   - Admin dashboard (`/admin`) with product management + order/user views
 
@@ -56,12 +57,34 @@ I’m keeping the README practical — basically the notes I use when I’m sett
   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-  # Server-only (DO NOT expose this client-side)
+  # Square (public)
+  NEXT_PUBLIC_SQUARE_APPLICATION_ID=your_square_app_id
+  NEXT_PUBLIC_SQUARE_LOCATION_ID=your_square_location_id
+  NEXT_PUBLIC_SQUARE_ENVIRONMENT=sandbox
+
+  # Server-only (DO NOT expose these client-side)
   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+  # Square (server)
+  SQUARE_ACCESS_TOKEN=your_square_access_token
+  SQUARE_ENVIRONMENT=sandbox
+  # Optional: if omitted, server routes will fall back to NEXT_PUBLIC_SQUARE_LOCATION_ID
+  SQUARE_LOCATION_ID=your_square_location_id
+
+  # Order emails (Resend)
+  RESEND_API_KEY=your_resend_api_key
+  ORDER_EMAIL_FROM=The Creativity Shoppe <orders@yourdomain.com>
+
+  # One-click cancellation links in emails
+  ORDER_CANCEL_TOKEN_SECRET=some_long_random_string
+
+  # Optional: server-side base URL override for absolute links in emails
+  PUBLIC_SITE_URL=http://localhost:3000
   ```
 
   Notes:
   - `NEXT_PUBLIC_SITE_URL` is used for auth redirect links (signup confirmation + password reset).
+  - `PUBLIC_SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) is used to generate absolute links in order confirmation emails.
   - `SUPABASE_SERVICE_ROLE_KEY` is used by server code for admin/server actions; don’t put it anywhere that ends up in the browser.
 
 </details>
@@ -85,7 +108,6 @@ I’m keeping the README practical — basically the notes I use when I’m sett
 
   **Edge Functions (in `supabase/functions/`)**
   - `create-order`
-  - `order`
   - `list-users`
   - `enable-user`
   - `disable-user`
@@ -131,6 +153,8 @@ I’m keeping the README practical — basically the notes I use when I’m sett
   <summary><strong>Troubleshooting Notes</strong></summary>
 
   - If auth redirects are weird: double-check `NEXT_PUBLIC_SITE_URL`.
+  - If order emails don’t send: confirm `RESEND_API_KEY` and `ORDER_EMAIL_FROM`.
+  - If the cancel link rejects as invalid/expired: confirm `ORDER_CANCEL_TOKEN_SECRET` and that your server clock is correct.
   - If product images won’t render: confirm your Supabase hostname is allowed in `next.config.ts`.
   - If admin pages error: confirm `SUPABASE_SERVICE_ROLE_KEY` is set server-side and your `profiles.role` is `admin`.
 
@@ -145,5 +169,3 @@ I’m keeping the README practical — basically the notes I use when I’m sett
   Note: the MIT License covers the software source code. It does not grant rights to trademarks, branding, product photography, or product descriptions.
 
 </details>
-
-

@@ -77,6 +77,14 @@ export default function MobileMenu({
         Shop
       </Link>
 
+      <Link
+        href="/orders"
+        onClick={onClose}
+        className="text-lg font-medium hover:underline underline-offset-4"
+      >
+        Orders
+      </Link>
+
       <button
         type="button"
         onClick={onOpenContact}

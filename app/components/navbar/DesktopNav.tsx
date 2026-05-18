@@ -45,6 +45,10 @@ export default function DesktopNav({
         Shop
       </Link>
 
+      <Link href="/orders" className="text-xl hover:underline underline-offset-4">
+        Orders
+      </Link>
+
       <button
         type="button"
         onClick={onOpenContact}

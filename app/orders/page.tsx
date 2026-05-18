@@ -42,6 +42,14 @@ export default function OrdersPage() {
     text: string;
   } | null>(null);
 
+  const [guestOrderNumber, setGuestOrderNumber] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPostalCode, setGuestPostalCode] = useState("");
+  const [isGuestCancelling, setIsGuestCancelling] = useState(false);
+  const [guestCancelMessage, setGuestCancelMessage] = useState<string | null>(
+    null,
+  );
+
   async function cancelOrder(orderId: string) {
     const confirmed = window.confirm(
       "Cancel this order and refund the payment? This is only allowed before it ships.",
@@ -77,6 +85,63 @@ export default function OrdersPage() {
     }
   }
 
+  async function cancelGuestOrder() {
+    const confirmed = window.confirm(
+      "Cancel this order and refund the payment? This is only allowed before it ships.",
+    );
+    if (!confirmed) return;
+
+    const parsedOrderNumber = Number(guestOrderNumber);
+
+    if (!Number.isFinite(parsedOrderNumber) || parsedOrderNumber < 1) {
+      setGuestCancelMessage("Enter a valid order number.");
+      return;
+    }
+
+    if (!guestEmail.trim()) {
+      setGuestCancelMessage("Enter the email used for the order.");
+      return;
+    }
+
+    if (!guestPostalCode.trim()) {
+      setGuestCancelMessage("Enter the shipping ZIP/postal code.");
+      return;
+    }
+
+    setIsGuestCancelling(true);
+    setGuestCancelMessage(null);
+
+    try {
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: parsedOrderNumber,
+          customerEmail: guestEmail.trim(),
+          postalCode: guestPostalCode.trim(),
+        }),
+      });
+
+      const payload = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+
+      if (!res.ok) {
+        throw new Error(payload?.error || "Failed to cancel order.");
+      }
+
+      setGuestCancelMessage(
+        "Order cancelled. If it was paid, the refund has been started.",
+      );
+    } catch (e) {
+      setGuestCancelMessage(
+        e instanceof Error ? e.message : "Failed to cancel order.",
+      );
+    } finally {
+      setIsGuestCancelling(false);
+    }
+  }
+
   return (
     <section className="min-h-screen bg-sandstone px-6 py-12 text-background md:px-12">
       <div className="mx-auto max-w-5xl space-y-8">
@@ -95,8 +160,69 @@ export default function OrdersPage() {
             Loading orders...
           </div>
         ) : !user ? (
-          <div className="rounded-3xl border border-background/20 bg-background/10 p-6 text-background/70">
-            Sign in to view your order history.
+          <div className="grid gap-6">
+            <div className="rounded-3xl border border-background/20 bg-background/10 p-6 text-background/70">
+              Sign in to view your order history.
+            </div>
+
+            <div className="rounded-3xl border border-background/20 bg-background/10 p-6">
+              <h2 className="text-xl font-semibold">Guest order cancellation</h2>
+              <p className="mt-2 text-sm text-background/70">
+                If you checked out as a guest, enter the email used for the
+                order, your order number, and the shipping ZIP/postal code.
+              </p>
+
+              {guestCancelMessage ? (
+                <div className="mt-4 rounded-2xl border border-background/15 bg-sandstone/60 p-4 text-sm text-background/80">
+                  {guestCancelMessage}
+                </div>
+              ) : null}
+
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="text-sm text-background/70">Order #</label>
+                  <input
+                    value={guestOrderNumber}
+                    onChange={(e) => setGuestOrderNumber(e.target.value)}
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-background/15 bg-sandstone px-3 py-2 text-background outline-none"
+                    placeholder="1234"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-background/70">Email</label>
+                  <input
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    type="email"
+                    className="w-full rounded-xl border border-background/15 bg-sandstone px-3 py-2 text-background outline-none"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-background/70">
+                    Shipping ZIP
+                  </label>
+                  <input
+                    value={guestPostalCode}
+                    onChange={(e) => setGuestPostalCode(e.target.value)}
+                    className="w-full rounded-xl border border-background/15 bg-sandstone px-3 py-2 text-background outline-none"
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void cancelGuestOrder()}
+                disabled={isGuestCancelling}
+                className="mt-5 rounded-xl border border-background/20 px-4 py-2 text-sm font-semibold transition hover:bg-background hover:text-sandstone disabled:opacity-60"
+              >
+                {isGuestCancelling ? "Cancelling..." : "Cancel Guest Order"}
+              </button>
+            </div>
           </div>
         ) : error ? (
           <div className="rounded-3xl border border-red-400/40 bg-red-500/10 p-6 text-red-200">
