@@ -207,6 +207,51 @@ async function sendOrderConfirmationEmail(args: {
   }
 }
 
+async function sendNewOrderNotificationEmail(args: {
+  to: string;
+  orderNumber: number;
+  total: number;
+  ordersUrl: string;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.ORDER_EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    console.warn("Order email not configured (missing RESEND_API_KEY or ORDER_EMAIL_FROM).");
+    return;
+  }
+
+  const subject = `New order #${args.orderNumber}`;
+
+  const html = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.4">
+      <h2 style="margin:0 0 12px 0">New order received</h2>
+      <p style="margin:0 0 8px 0"><strong>Order #:</strong> ${args.orderNumber}</p>
+      <p style="margin:0 0 12px 0"><strong>Total:</strong> $${Number(args.total).toFixed(2)}</p>
+      <p style="margin:0">View orders: <a href="${args.ordersUrl}">${args.ordersUrl}</a></p>
+    </div>
+  `;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: args.to,
+      subject,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Failed to send new order notification email:", res.status, text);
+  }
+}
+
 function getSquarePaymentFields(payload: unknown): { paymentId: string | null; receiptUrl: string | null } {
   const obj = asObject(payload);
   const paymentObj = asObject(obj?.payment);
@@ -420,6 +465,20 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       console.error("Order confirmation email failed:", error);
+    }
+  }
+
+  const notifyTo = process.env.ORDER_NOTIFY_EMAIL;
+  if (notifyTo && notifyTo.trim()) {
+    try {
+      await sendNewOrderNotificationEmail({
+        to: notifyTo.trim(),
+        orderNumber: order.orderNumber,
+        total: order.total,
+        ordersUrl,
+      });
+    } catch (error) {
+      console.error("New order notification email failed:", error);
     }
   }
 
