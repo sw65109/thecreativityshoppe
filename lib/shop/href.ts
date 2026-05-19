@@ -89,20 +89,55 @@ function pickCardImage(
 ) {
   if (def.imageOverride) return def.imageOverride;
 
+  const search = (def.search ?? "").trim().toLowerCase();
   const keyword = (def.imageKeyword ?? "").trim().toLowerCase();
-  if (keyword) {
-    const hit = products.find((p) =>
-      p.name.toLowerCase().includes(keyword),
-    )?.image;
-    if (hit) return hit;
-  }
+
+  const matches = (name: string, needle: string) =>
+    name.toLowerCase().includes(needle);
+
+  const findMatch = (
+    candidates: Array<{ name: string; image: string; category: ShopCategory }>,
+  ) => {
+    if (search && keyword) {
+      const hit = candidates.find(
+        (p) => matches(p.name, keyword) && matches(p.name, search),
+      )?.image;
+      if (hit) return hit;
+    }
+
+    if (search) {
+      const hit = candidates.find((p) => matches(p.name, search))?.image;
+      if (hit) return hit;
+    }
+
+    if (keyword) {
+      const hit = candidates.find((p) => matches(p.name, keyword))?.image;
+      if (hit) return hit;
+    }
+
+    return undefined;
+  };
+
+  const categoryCandidates = products.filter((p) => p.category === def.category);
+
+  const categoryHit = findMatch(categoryCandidates);
+  if (categoryHit) return categoryHit;
+
+  if (categoryCandidates[0]?.image) return categoryCandidates[0].image;
 
   if (def.fallbackCategory) {
-    const fallback = products.find(
+    const fallbackCandidates = products.filter(
       (p) => p.category === def.fallbackCategory,
-    )?.image;
-    if (fallback) return fallback;
+    );
+
+    const fallbackHit = findMatch(fallbackCandidates);
+    if (fallbackHit) return fallbackHit;
+
+    if (fallbackCandidates[0]?.image) return fallbackCandidates[0].image;
   }
+
+  const globalHit = findMatch(products);
+  if (globalHit) return globalHit;
 
   return DEFAULT_CARD_IMAGE;
 }
@@ -122,11 +157,6 @@ function cardHref(params: ShopSearchParams, def: CardDef) {
   );
 }
 
-/**
- * Top-level category cards.
- * For categories that should open sub-cards, set view="landing".
- * For categories that should go directly to product grid, set view="products".
- */
 const TOP_LEVEL_CATEGORY_CARDS: CardDef[] = [
   {
     key: "bowls",
