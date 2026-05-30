@@ -201,17 +201,26 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     );
   }
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = !search || product.name.toLowerCase().includes(search);
+  const searchTerms = search
+  .split(/\s+/)
+  .map((term) => term.trim())
+  .filter(Boolean);
 
-    return (
-      matchesSearch &&
-      matchesCategory(product, category) &&
-      matchesPriceRange(product, price) &&
-      matchesAvailability(product, availability) &&
-      matchesDeals(product, deals)
-    );
-  });
+const filteredProducts = products.filter((product) => {
+  const productName = product.name.toLowerCase();
+
+  const matchesSearch =
+    searchTerms.length === 0 ||
+    searchTerms.every((term) => productName.includes(term));
+
+  return (
+    matchesSearch &&
+    matchesCategory(product, category) &&
+    matchesPriceRange(product, price) &&
+    matchesAvailability(product, availability) &&
+    matchesDeals(product, deals)
+  );
+});
 
   const sortedProducts = sortProducts(filteredProducts, sort);
 
