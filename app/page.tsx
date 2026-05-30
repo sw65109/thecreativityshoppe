@@ -4,6 +4,10 @@ import { mockProducts } from "@/lib/mockProducts";
 import { supabaseServer } from "@/lib/supabaseServer";
 import type { Product } from "@/types/product";
 
+export const dynamic = "force-dynamic";
+
+const FEATURED_PRODUCT_COUNT = 6;
+
 type ProductRow = {
   id: string;
   name: string;
@@ -25,6 +29,19 @@ function normalizePrice(value: number | string | null) {
   const price = Number(value);
 
   return Number.isFinite(price) ? price : 0;
+}
+
+function getRandomFeaturedProducts(
+  products: Product[],
+  count = FEATURED_PRODUCT_COUNT,
+) {
+  if (products.length <= count) {
+    return products;
+  }
+
+  return [...products]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
 }
 
 async function getStorefrontProducts(): Promise<Product[]> {
@@ -71,10 +88,12 @@ export default async function Home() {
     getUpcomingCraftShows(),
   ]);
 
+  const featuredProducts = getRandomFeaturedProducts(products);
+
   return (
     <div>
       <Landing products={products} craftShows={craftShows} />
-      <FeaturedProducts products={products} />
+      <FeaturedProducts products={featuredProducts} />
     </div>
   );
 }
