@@ -42,11 +42,10 @@ export default function Landing({
             Creating Functional Art
           </h1>
 
-          <Link href="/shop">
-            <button className="my-8 rounded-full bg-sandstone px-6 py-3 font-semibold text-background transition hover:opacity-90">
-              Shop now
-            </button>
-          </Link>
+          <Link href="/shop"></Link>
+          <button className="my-8 rounded-full bg-sandstone px-6 py-3 font-semibold text-background transition hover:opacity-90">
+            Shop now
+          </button>
 
           <div className="mt-16 w-full max-w-5xl">
             <div className=" my-10 flex flex-col items-center justify-center gap-12 lg:flex-row lg:items-center lg:justify-center">
@@ -69,7 +68,9 @@ export default function Landing({
             </p>
 
             <div className="py-10 rounded-2xl border border-sandstone/30 bg-sandstone p-5 text-left">
-              <h3 className=" pb-6 text-lg text-background font-semibold">Upcoming Craft Shows</h3>
+              <h3 className=" pb-6 text-lg text-background font-semibold">
+                Upcoming Craft Shows
+              </h3>
 
               {craftShows.length ? (
                 <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -96,7 +97,6 @@ export default function Landing({
                 </p>
               )}
             </div>
-
           </div>
 
           <div className="mt-48 mb-48 w-full max-w-3xl">

@@ -45,7 +45,10 @@ export default function DesktopNav({
         Shop
       </Link>
 
-      <Link href="/orders" className="text-xl hover:underline underline-offset-4">
+      <Link
+        href="/orders"
+        className="text-xl hover:underline underline-offset-4"
+      >
         Orders
       </Link>
 
@@ -83,7 +86,11 @@ export default function DesktopNav({
         </Link>
       )}
 
-      <Link href="/cart" className="relative inline-flex">
+      <Link
+        href="/cart"
+        aria-label={`Shopping cart${cartReady ? `, ${itemCount} ${itemCount === 1 ? "item" : "items"}` : ""}`}
+        className="relative inline-flex"
+      >
         <ShoppingCart className="h-5 w-5" />
         {cartReady && itemCount > 0 ? (
           <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-sandstone px-1 text-[8px] font-bold leading-none text-background">

@@ -51,13 +51,10 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     availability === "all" &&
     deals === "all";
 
-    const showTopLanding =
-    !isProductsView &&
-    !search &&
-    category === "all" &&
-    isDefaultFilters;
+  const showTopLanding =
+    !isProductsView && !search && category === "all" && isDefaultFilters;
 
-    const showSubLanding =
+  const showSubLanding =
     !isProductsView &&
     !search &&
     category !== "all" &&
@@ -69,7 +66,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
     return (
       <div className="bg-[url('/textures/wood_grain_5.png')] bg-cover bg-top-right bg-no-repeat">
-        <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 2xl:max-w-450 2xl:px-12">
+        <div className="mx-auto w-full px-4 sm:px-6 lg:px-8 2xl:max-w-450 2xl:px-12">
           <div className="h-10" />
 
           <div className="min-w-0">
@@ -86,7 +83,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
             <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-4">
               {cards.map((card) => (
-                <Link key={card.key} href={card.href} className="group block">
+                <Link
+                  key={card.key}
+                  href={card.href}
+                  aria-label={`Browse ${card.title}`}
+                  className="group block"
+                >
                   <article className="relative h-162.5 flex flex-col overflow-hidden rounded-3xl border border-background/15 bg-sandstone shadow-sm transition hover:shadow-md">
                     <div className="relative h-72 sm:h-80 shrink-0">
                       <Image
@@ -127,7 +129,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           </div>
 
           <div className="h-32" />
-        </main>
+        </div>
       </div>
     );
   }
@@ -202,25 +204,25 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   }
 
   const searchTerms = search
-  .split(/\s+/)
-  .map((term) => term.trim())
-  .filter(Boolean);
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter(Boolean);
 
-const filteredProducts = products.filter((product) => {
-  const productName = product.name.toLowerCase();
+  const filteredProducts = products.filter((product) => {
+    const productName = product.name.toLowerCase();
 
-  const matchesSearch =
-    searchTerms.length === 0 ||
-    searchTerms.every((term) => productName.includes(term));
+    const matchesSearch =
+      searchTerms.length === 0 ||
+      searchTerms.every((term) => productName.includes(term));
 
-  return (
-    matchesSearch &&
-    matchesCategory(product, category) &&
-    matchesPriceRange(product, price) &&
-    matchesAvailability(product, availability) &&
-    matchesDeals(product, deals)
-  );
-});
+    return (
+      matchesSearch &&
+      matchesCategory(product, category) &&
+      matchesPriceRange(product, price) &&
+      matchesAvailability(product, availability) &&
+      matchesDeals(product, deals)
+    );
+  });
 
   const sortedProducts = sortProducts(filteredProducts, sort);
 
@@ -235,7 +237,9 @@ const filteredProducts = products.filter((product) => {
           <div className="min-w-0">
             <ShopResultsHeader
               params={params}
-              title={category === "all" ? "All Products" : getCategoryLabel(category)}
+              title={
+                category === "all" ? "All Products" : getCategoryLabel(category)
+              }
               resultCount={sortedProducts.length}
               search={search}
               category={category}

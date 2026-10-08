@@ -74,11 +74,10 @@ export default function FeaturedProducts({
         </div>
 
         <div className="flex justify-center mt-12">
-          <Link href="/shop">
-            <button className="px-8 py-2 border border-sandstone text-walnut bg-sandstone text-shadow-lg font-semibold rounded-full cursor-pointer hover:bg-background hover:text-sandstone transition">
-              View Products
-            </button>
-          </Link>
+          <Link href="/shop"></Link>
+          <button className="px-8 py-2 border border-sandstone text-walnut bg-sandstone text-shadow-lg font-semibold rounded-full cursor-pointer hover:bg-background hover:text-sandstone transition">
+            View Products
+          </button>
         </div>
       </section>
     </div>
