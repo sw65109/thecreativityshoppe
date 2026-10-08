@@ -21,7 +21,13 @@ export default function UserMenuDesktop({
 }: UserMenuDesktopProps) {
   return (
     <div className="relative">
-      <button onClick={() => setAvatarOpen(!avatarOpen)}>
+      <button
+        type="button"
+        aria-label={avatarOpen ? "Close account menu" : "Open account menu"}
+        aria-expanded={avatarOpen}
+        onClick={() => setAvatarOpen(!avatarOpen)}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sandstone focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
         {avatarUrl ? (
           <Image
             src={avatarUrl}
@@ -29,7 +35,7 @@ export default function UserMenuDesktop({
             width={36}
             height={36}
             loading="eager"
-            className="h-9 w-9 cursor-pointer rounded-full object-cover object-center"
+            className="h-12 w-12 cursor-pointer rounded-full object-cover object-center"
           />
         ) : (
           <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-sandstone/40 text-sm font-bold text-sandstone hover:bg-sandstone hover:text-background">

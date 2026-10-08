@@ -89,11 +89,11 @@ export default function DesktopNav({
       <Link
         href="/cart"
         aria-label={`Shopping cart${cartReady ? `, ${itemCount} ${itemCount === 1 ? "item" : "items"}` : ""}`}
-        className="relative inline-flex"
+        className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sandstone focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <ShoppingCart className="h-5 w-5" />
+        <ShoppingCart className="h-7 w-7" />
         {cartReady && itemCount > 0 ? (
-          <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-sandstone px-1 text-[8px] font-bold leading-none text-background">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-4 items-center justify-center rounded-full bg-sandstone px-1 text-[14px] font-bold leading-none text-background">
             {itemCount > 99 ? "99+" : itemCount}
           </span>
         ) : null}

@@ -47,7 +47,7 @@ export default function MobileMenu({
       <form
         key={`mobile-${currentSearch}`}
         onSubmit={onSearchSubmit}
-        className="flex w-72 max-w-[90%] items-center rounded-full bg-sandstone/20 px-4 py-2 backdrop-blur-sm"
+        className="flex w-72 max-w-[90%] items-center rounded-full bg-sandstone/20 px-4 py-2 backdrop-blur-sm md:hidden"
       >
         <input
           name="search"
@@ -64,7 +64,7 @@ export default function MobileMenu({
       <Link
         href="/"
         onClick={onClose}
-        className="text-lg font-medium hover:underline underline-offset-4"
+        className="text-xl font-medium hover:underline underline-offset-4"
       >
         Home
       </Link>
@@ -72,7 +72,7 @@ export default function MobileMenu({
       <Link
         href="/shop"
         onClick={onClose}
-        className="text-lg font-medium hover:underline underline-offset-4"
+        className="text-xl font-medium hover:underline underline-offset-4"
       >
         Shop
       </Link>
@@ -80,7 +80,7 @@ export default function MobileMenu({
       <Link
         href="/orders"
         onClick={onClose}
-        className="text-lg font-medium hover:underline underline-offset-4"
+        className="text-xl font-medium hover:underline underline-offset-4"
       >
         Orders
       </Link>
@@ -88,7 +88,7 @@ export default function MobileMenu({
       <button
         type="button"
         onClick={onOpenContact}
-        className="text-lg font-medium hover:underline underline-offset-4"
+        className="text-xl font-medium hover:underline underline-offset-4"
       >
         Contact
       </button>
@@ -97,7 +97,7 @@ export default function MobileMenu({
         <Link
           href={isAdminRoute ? "/" : "/admin"}
           onClick={onClose}
-          className="text-lg font-medium hover:underline underline-offset-4"
+          className="text-xl font-medium hover:underline underline-offset-4"
         >
           {isAdminRoute ? "Store" : "Admin"}
         </Link>
@@ -138,7 +138,7 @@ export default function MobileMenu({
         <button
           type="button"
           onClick={onLogout}
-          className="text-lg font-medium hover:underline underline-offset-4"
+          className="text-xl font-medium hover:underline underline-offset-4"
         >
           Logout
         </button>
@@ -147,15 +147,15 @@ export default function MobileMenu({
       <Link
         href="/cart"
         onClick={onClose}
-        className="relative inline-flex items-center text-lg font-medium hover:underline underline-offset-4"
+        className="relative inline-flex items-center text-xl font-medium hover:underline underline-offset-4"
       >
-        <ShoppingCart className="h-5 w-5" />
+        <ShoppingCart className="h-8 w-8 min-h-11 items-center" />
         {cartReady && itemCount > 0 ? (
-          <span className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-sandstone px-1 text-[10px] font-bold leading-none text-background">
+          <span className="absolute -right-4 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-sandstone px-1 text-[14px] font-bold leading-none text-background">
             {itemCount > 99 ? "99+" : itemCount}
           </span>
         ) : null}
-        <span className="ml-3">Cart</span>
+        <span className="ml-4">Cart</span>
       </Link>
     </div>
   );
