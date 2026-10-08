@@ -42,10 +42,12 @@ export default function Landing({
             Creating Functional Art
           </h1>
 
-          <Link href="/shop"></Link>
-          <button className="my-8 rounded-full bg-sandstone px-6 py-3 font-semibold text-background transition hover:opacity-90">
+          <Link
+            href="/shop"
+            className="my-8 rounded-full bg-sandstone px-6 py-3 font-semibold text-background transition hover:opacity-90"
+          >
             Shop now
-          </button>
+          </Link>
 
           <div className="mt-16 w-full max-w-5xl">
             <div className=" my-10 flex flex-col items-center justify-center gap-12 lg:flex-row lg:items-center lg:justify-center">
