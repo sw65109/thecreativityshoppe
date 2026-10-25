@@ -11,12 +11,6 @@ import {
   type AdminUser,
 } from "@/lib/adminUsersClient";
 
-const PROTECTED_ADMIN_IDS = [
-  "a85e214b-b408-44be-a21a-58ee06115b62",
-  "4c96fe11-3f35-48da-b00f-3978ceb16d83",
-  "9086b6e8-a544-4f4a-ba4d-d0ba031165be",
-] as readonly string[];
-
 function formatCreatedDate(value: string | null) {
   if (!value) {
     return "Unknown";
@@ -29,7 +23,11 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export default function AdminUsersClient() {
+type AdminUsersClientProps = {
+  protectedAdminIds: string[];
+};
+
+export default function AdminUsersClient({ protectedAdminIds }: AdminUsersClientProps) {
   const { initialized, user, isAdmin } = useAuth();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -156,7 +154,7 @@ export default function AdminUsersClient() {
           <tbody>
             {users.length ? (
               users.map((account) => {
-                const isProtectedAdmin = PROTECTED_ADMIN_IDS.includes(account.id);
+                const isProtectedAdmin = protectedAdminIds.includes(account.id);
                 const isCurrentUser = account.id === user?.id;
                 const isBusy = pendingUserId === account.id;
                 const isAdminRole = account.role === "admin";

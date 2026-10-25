@@ -37,7 +37,10 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+function getStringProp(
+  obj: Record<string, unknown> | null,
+  key: string,
+): string | null {
   if (!obj) return null;
   const value = obj[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -62,9 +65,9 @@ async function parseErrorResponse(response: Response) {
   if (message) return message;
 
   try {
-    if (payload !== null && payload !== undefined) return JSON.stringify(payload);
-  } catch {
-  }
+    if (payload !== null && payload !== undefined)
+      return JSON.stringify(payload);
+  } catch {}
 
   try {
     return await response.text();
@@ -100,13 +103,44 @@ function getSquareFirstError(payload: unknown): string | null {
   return null;
 }
 
+async function writePaymentWithRetry(
+  orderId: string,
+  paymentId: string | null,
+  receiptUrl: string | null,
+) {
+  let attempts = 0;
+
+  while (attempts < 3) {
+    attempts++;
+
+    const { data, error } = await supabaseServer
+      .from("orders")
+      .update({
+        square_payment_id: paymentId,
+        square_receipt_url: receiptUrl,
+        status: "paid",
+      })
+      .eq("id", orderId)
+      .eq("status", "pending")
+      .select("id");
+
+    if (!error) return { ok: true, updated: (data?.length ?? 0) > 0 };
+
+    await new Promise((r) => setTimeout(r, 200 * attempts));
+  }
+
+  return { ok: false, updated: false };
+}
+
 function getPublicBaseUrl(request: Request) {
-  const explicit = process.env.PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+  const explicit =
+    process.env.PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit && explicit.trim()) return explicit.replace(/\/+$/, "");
 
   const forwardedProto = request.headers.get("x-forwarded-proto");
   const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedProto && forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  if (forwardedProto && forwardedHost)
+    return `${forwardedProto}://${forwardedHost}`;
 
   return new URL(request.url).origin;
 }
@@ -146,7 +180,9 @@ async function sendOrderConfirmationEmail(args: {
   const from = process.env.ORDER_EMAIL_FROM;
 
   if (!apiKey || !from) {
-    console.warn("Order email not configured (missing RESEND_API_KEY or ORDER_EMAIL_FROM).");
+    console.warn(
+      "Order email not configured (missing RESEND_API_KEY or ORDER_EMAIL_FROM).",
+    );
     return;
   }
 
@@ -217,7 +253,9 @@ async function sendNewOrderNotificationEmail(args: {
   const from = process.env.ORDER_EMAIL_FROM;
 
   if (!apiKey || !from) {
-    console.warn("Order email not configured (missing RESEND_API_KEY or ORDER_EMAIL_FROM).");
+    console.warn(
+      "Order email not configured (missing RESEND_API_KEY or ORDER_EMAIL_FROM).",
+    );
     return;
   }
 
@@ -248,11 +286,18 @@ async function sendNewOrderNotificationEmail(args: {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    console.error("Failed to send new order notification email:", res.status, text);
+    console.error(
+      "Failed to send new order notification email:",
+      res.status,
+      text,
+    );
   }
 }
 
-function getSquarePaymentFields(payload: unknown): { paymentId: string | null; receiptUrl: string | null } {
+function getSquarePaymentFields(payload: unknown): {
+  paymentId: string | null;
+  receiptUrl: string | null;
+} {
   const obj = asObject(payload);
   const paymentObj = asObject(obj?.payment);
 
@@ -299,6 +344,13 @@ async function createSquarePayment(args: {
     };
   }
 
+  const paymentObj = asObject(asObject(payload)?.payment);
+const status = getStringProp(paymentObj, "status");
+
+if (status !== "COMPLETED") {
+  return { ok: false as const, error: "Payment was not completed." };
+}
+
   const { paymentId, receiptUrl } = getSquarePaymentFields(payload);
 
   return {
@@ -318,10 +370,14 @@ export async function POST(request: Request) {
   }
 
   const locationId =
-    process.env.SQUARE_LOCATION_ID ?? process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
+    process.env.SQUARE_LOCATION_ID ??
+    process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
   if (!locationId) {
     return Response.json(
-      { error: "Server is missing SQUARE_LOCATION_ID (or NEXT_PUBLIC_SQUARE_LOCATION_ID)." },
+      {
+        error:
+          "Server is missing SQUARE_LOCATION_ID (or NEXT_PUBLIC_SQUARE_LOCATION_ID).",
+      },
       { status: 500 },
     );
   }
@@ -338,32 +394,64 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const sourceId = typeof record.sourceId === "string" ? record.sourceId.trim() : "";
+  const sourceId =
+    typeof record.sourceId === "string" ? record.sourceId.trim() : "";
   const checkout = record.checkout;
 
+  const checkoutAttemptId =
+  typeof record.checkoutAttemptId === "string"
+    ? record.checkoutAttemptId.trim()
+    : "";
+
+if (!/^[0-9a-fA-F-]{36}$/.test(checkoutAttemptId)) {
+  return Response.json(
+    { error: "Missing checkout attempt id." },
+    { status: 400 },
+  );
+}
+
+
   if (!sourceId) {
-    return Response.json({ error: "Missing Square sourceId." }, { status: 400 });
+    return Response.json(
+      { error: "Missing Square sourceId." },
+      { status: 400 },
+    );
   }
 
   if (!asObject(checkout)) {
-    return Response.json({ error: "Missing checkout payload." }, { status: 400 });
+    return Response.json(
+      { error: "Missing checkout payload." },
+      { status: 400 },
+    );
   }
 
   const supabaseAuthed = await supabaseServerAuthed();
   const {
-    data: { session },
-  } = await supabaseAuthed.auth.getSession();
+    data: { user: authedUser },
+  } = await supabaseAuthed.auth.getUser(); // validates the JWT; stale token => guest
+
+  let accessToken: string | null = null;
+  if (authedUser) {
+    const {
+      data: { session },
+    } = await supabaseAuthed.auth.getSession();
+    accessToken = session?.access_token ?? null;
+  }
 
   const headers: Record<string, string> = {
     apikey: anonKey,
     "Content-Type": "application/json",
   };
-  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   const orderResponse = await fetch(getSupabaseFunctionUrl("create-order"), {
     method: "POST",
     headers,
-    body: JSON.stringify(checkout),
+    body: JSON.stringify({
+      ...(checkout as Record<string, unknown>),
+      checkoutAttemptId,
+    }),
+    
   });
 
   if (!orderResponse.ok) {
@@ -406,7 +494,7 @@ export async function POST(request: Request) {
 
   const squarePayment = await createSquarePayment({
     sourceId,
-    idempotencyKey: order.orderId,
+    idempotencyKey: checkoutAttemptId,
     amountCents,
     currency: "USD",
     locationId,
@@ -419,19 +507,34 @@ export async function POST(request: Request) {
     return Response.json({ error: squarePayment.error }, { status: 402 });
   }
 
-  const { error: paymentUpdateError } = await supabaseServer
-    .from("orders")
-    .update({
-      square_payment_id: squarePayment.paymentId,
-      square_receipt_url: squarePayment.receiptUrl,
-    })
-    .eq("id", order.orderId);
+  const writeResult = await writePaymentWithRetry(
+    order.orderId,
+    squarePayment.paymentId,
+    squarePayment.receiptUrl,
+  );
 
-  if (paymentUpdateError) {
-    console.error("Failed to store Square payment fields:", paymentUpdateError.message);
+  if (!writeResult.ok) {
+    return Response.json({
+      ok: true,
+      orderId: order.orderId,
+      orderNumber: order.orderNumber,
+      total: order.total,
+      paymentId: squarePayment.paymentId,
+      paymentPending: true,
+      message: "Payment received, confirming order.",
+    });
+
+    if (!writeResult.updated) {
+      return Response.json({
+        ok: true,
+        orderId: order.orderId,
+        orderNumber: order.orderNumber,
+        total: order.total,
+        paymentId: squarePayment.paymentId,
+        receiptUrl: squarePayment.receiptUrl,
+      });
+    }
   }
-
-  await updateOrderStatus(order.orderId, "paid");
 
   const baseUrl = getPublicBaseUrl(request);
   const ordersUrl = `${baseUrl}/orders`;

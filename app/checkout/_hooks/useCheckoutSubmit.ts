@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { CartItem } from "@/app/context/CartContext";
 import type { CheckoutOrderForm } from "@/lib/checkoutForm";
@@ -23,6 +23,7 @@ type SquareCheckoutSuccess = {
   total: number;
   paymentId: string | null;
   receiptUrl: string | null;
+  paymentPending?: boolean;
 };
 
 type SquareCheckoutError = { error: string };
@@ -39,7 +40,12 @@ export function useCheckoutSubmit({
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
 
+  const inFlightRef = useRef(false);
+  const attemptIdRef = useRef<string | null>(null);
+
   async function handleCheckout() {
+    if (inFlightRef.current) return;
+
     const validationError = validate();
 
     if (validationError) {
@@ -52,6 +58,8 @@ export function useCheckoutSubmit({
       return;
     }
 
+    inFlightRef.current = true;
+    attemptIdRef.current ??= crypto.randomUUID();
     setIsCheckingOut(true);
     setCheckoutMessage(null);
 
@@ -63,6 +71,7 @@ export function useCheckoutSubmit({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceId,
+          checkoutAttemptId: attemptIdRef.current,
           checkout: buildCheckoutPayload(items, form),
         }),
       });
@@ -88,18 +97,24 @@ export function useCheckoutSubmit({
         throw new Error("Payment failed. Please try again.");
       }
 
+      attemptIdRef.current = null;
       clearCart();
 
       if (!user) {
         resetGuestForm();
       }
 
-      setCheckoutMessage(`Payment successful. Order #${payload.orderNumber}`);
+      setCheckoutMessage(
+        payload.paymentPending
+          ? `Payment received, confirming order. Order #${payload.orderNumber}`
+          : `Payment successful. Order #${payload.orderNumber}`,
+      );
     } catch (error) {
       setCheckoutMessage(
         error instanceof Error ? error.message : "Failed to place order.",
       );
     } finally {
+      inFlightRef.current = false;
       setIsCheckingOut(false);
     }
   }

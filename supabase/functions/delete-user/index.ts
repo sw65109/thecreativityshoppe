@@ -4,7 +4,10 @@ import { buildCorsPreflightResponse } from "../_shared/cors.ts";
 import { errorResponse, jsonResponse } from "../_shared/responses.ts";
 import { requireAdmin } from "../_shared/auth.ts";
 
-const PROTECTED_ADMIN_ID = "a85e214b-b408-44be-a21a-58ee06115b62";
+const PROTECTED_ADMIN_IDS = (Deno.env.get("PROTECTED_ADMIN_IDS") ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 type DeleteUserRequest = {
   userId?: string;
@@ -41,7 +44,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     return errorResponse("User id is required.", 400);
   }
 
-  if (userId === PROTECTED_ADMIN_ID) {
+  if (PROTECTED_ADMIN_IDS.includes(userId)) {
     return errorResponse("This admin account is protected and cannot be deleted.", 403);
   }
 

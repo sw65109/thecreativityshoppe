@@ -109,7 +109,10 @@ function safeEqual(a: string, b: string) {
   return timingSafeEqual(aBuf, bBuf);
 }
 
-function verifyCancelToken(token: string, secret: string): CancelTokenPayloadV1 | null {
+function verifyCancelToken(
+  token: string,
+  secret: string,
+): CancelTokenPayloadV1 | null {
   const trimmed = token.trim();
   const parts = trimmed.split(".");
   if (parts.length !== 2) return null;
@@ -138,7 +141,12 @@ function verifyCancelToken(token: string, secret: string): CancelTokenPayloadV1 
 
   if (v !== 1) return null;
   if (typeof exp !== "number" || !Number.isFinite(exp)) return null;
-  if (typeof orderNumber !== "number" || !Number.isFinite(orderNumber) || orderNumber < 1) return null;
+  if (
+    typeof orderNumber !== "number" ||
+    !Number.isFinite(orderNumber) ||
+    orderNumber < 1
+  )
+    return null;
   if (typeof customerEmail !== "string" || !customerEmail.trim()) return null;
   if (typeof postalCode !== "string" || !postalCode.trim()) return null;
 
@@ -223,13 +231,25 @@ async function cancelByLookup(args: {
 
   if (!lookupById) {
     if (!args.orderNumber || args.orderNumber < 1) {
-      return { ok: false as const, status: 400, error: "Missing order number." };
+      return {
+        ok: false as const,
+        status: 400,
+        error: "Missing order number.",
+      };
     }
     if (!args.customerEmail) {
-      return { ok: false as const, status: 400, error: "Missing customer email." };
+      return {
+        ok: false as const,
+        status: 400,
+        error: "Missing customer email.",
+      };
     }
     if (!args.postalCode) {
-      return { ok: false as const, status: 400, error: "Missing shipping postal code." };
+      return {
+        ok: false as const,
+        status: 400,
+        error: "Missing shipping postal code.",
+      };
     }
   }
 
@@ -256,10 +276,16 @@ async function cancelByLookup(args: {
     return { ok: false as const, status: 403, error: "Not authorized." };
   }
 
-  const status = String(order.status ?? "").trim().toLowerCase();
+  const status = String(order.status ?? "")
+    .trim()
+    .toLowerCase();
 
   if (status === "shipped" || status === "completed") {
-    return { ok: false as const, status: 409, error: "This order can no longer be cancelled." };
+    return {
+      ok: false as const,
+      status: 409,
+      error: "This order can no longer be cancelled.",
+    };
   }
 
   if (status === "cancelled") {
@@ -274,7 +300,8 @@ async function cancelByLookup(args: {
     };
   }
 
-  const paymentId = typeof order.square_payment_id === "string" ? order.square_payment_id : "";
+  const paymentId =
+    typeof order.square_payment_id === "string" ? order.square_payment_id : "";
   if (!paymentId) {
     return {
       ok: false as const,
@@ -313,86 +340,121 @@ async function cancelByLookup(args: {
   return { ok: true as const, status: 200 };
 }
 
+function htmlResponse(title: string, bodyHtml: string, status = 200) {
+  return new Response(htmlPage(title, bodyHtml), {
+    status,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token") ?? "";
+  const token = new URL(request.url).searchParams.get("token") ?? "";
 
   const secret = process.env.ORDER_CANCEL_TOKEN_SECRET;
   if (!secret) {
-    return new Response(
-      htmlPage(
-        "Cancellation unavailable",
-        `<h2>Cancellation link not configured.</h2><p>Please use the Orders page instead.</p>`,
-      ),
-      { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } },
+    return htmlResponse(
+      "Cancellation unavailable",
+      `<h2>Cancellation link not configured.</h2><p>Please use the Orders page instead.</p>`,
+      500,
     );
   }
 
   const payload = verifyCancelToken(token, secret);
   if (!payload) {
-    return new Response(
-      htmlPage(
-        "Invalid link",
-        `<h2>This cancellation link is invalid or expired.</h2><p>You can still cancel from the Orders page.</p>`,
-      ),
-      { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } },
+    return htmlResponse(
+      "Invalid link",
+      `<h2>This cancellation link is invalid or expired.</h2><p>You can still cancel from the Orders page.</p>`,
+      400,
     );
   }
 
-  const result = await cancelByLookup({
-    userId: null,
-    orderId: null,
-    orderNumber: payload.orderNumber,
-    customerEmail: payload.customerEmail,
-    postalCode: payload.postalCode,
-  });
-
-  if (!result.ok) {
-    return new Response(
-      htmlPage(
-        "Unable to cancel",
-        `<h2>Unable to cancel this order.</h2><p>${result.error ?? "Please try the Orders page."}</p>`,
-      ),
-      { status: result.status, headers: { "Content-Type": "text/html; charset=utf-8" } },
-    );
-  }
-
-  return new Response(
-    htmlPage(
-      "Order cancelled",
-      `<h2>Your order has been cancelled.</h2><p>If a refund was required, it has been submitted.</p>`,
-    ),
-    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
+  return htmlResponse(
+    "Confirm cancellation",
+    `<h2>Cancel order #${payload.orderNumber}?</h2>
+     <p>This will cancel your order and refund your payment.</p>
+     <form method="POST" action="/api/orders/cancel">
+       <input type="hidden" name="token" value="${escapeHtml(token)}" />
+       <button type="submit">Yes, cancel my order</button>
+     </form>`,
   );
 }
 
 export async function POST(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  // Form post from the emailed-link confirm page.
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const secret = process.env.ORDER_CANCEL_TOKEN_SECRET;
+    if (!secret) {
+      return htmlResponse(
+        "Cancellation unavailable",
+        `<h2>Cancellation link not configured.</h2><p>Please use the Orders page instead.</p>`,
+        500,
+      );
+    }
+
+    const form = await request.formData();
+    const token = String(form.get("token") ?? "");
+    const payload = verifyCancelToken(token, secret);
+    if (!payload) {
+      return htmlResponse(
+        "Invalid link",
+        `<h2>This cancellation link is invalid or expired.</h2><p>You can still cancel from the Orders page.</p>`,
+        400,
+      );
+    }
+
+    const result = await cancelByLookup({
+      userId: null,
+      orderId: null,
+      orderNumber: payload.orderNumber,
+      customerEmail: payload.customerEmail,
+      postalCode: payload.postalCode,
+    });
+
+    if (!result.ok) {
+      return htmlResponse(
+        "Unable to cancel",
+        `<h2>Unable to cancel this order.</h2><p>${escapeHtml(result.error ?? "Please try the Orders page.")}</p>`,
+        result.status,
+      );
+    }
+
+    return htmlResponse(
+      "Order cancelled",
+      `<h2>Your order has been cancelled.</h2><p>If a refund was required, it has been submitted.</p>`,
+    );
+  }
+
   const supabaseAuthed = await supabaseServerAuthed();
   const {
     data: { session },
   } = await supabaseAuthed.auth.getSession();
 
   const userId = session?.user?.id ?? null;
-
-  const body = await request.json().catch(() => null);
-  const record = asObject(body);
-
-  const orderId = getStringProp(record, "orderId");
-
-  const orderNumber = getNumberProp(record, "orderNumber");
-  const customerEmail = getStringProp(record, "customerEmail");
-  const postalCode = getStringProp(record, "postalCode");
+  const record = asObject(await request.json().catch(() => null));
 
   const result = await cancelByLookup({
     userId,
-    orderId: orderId ?? null,
-    orderNumber,
-    customerEmail,
-    postalCode,
+    orderId: getStringProp(record, "orderId"),
+    orderNumber: getNumberProp(record, "orderNumber"),
+    customerEmail: getStringProp(record, "customerEmail"),
+    postalCode: getStringProp(record, "postalCode"),
   });
 
   if (!result.ok) {
-    return Response.json({ error: result.error ?? "Unable to cancel order." }, { status: result.status });
+    return Response.json(
+      { error: result.error ?? "Unable to cancel order." },
+      { status: result.status },
+    );
   }
 
   return Response.json({ ok: true }, { status: 200 });

@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -36,15 +37,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   const itemsRef = useRef<CartItem[]>([]);
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
+  const serverWriteChain = useRef<Promise<unknown>>(Promise.resolve());
+
+  const commitItems = useCallback((next: CartItem[]) => {
+    itemsRef.current = next;
+    setItems(next);
+  }, []);
+
+  function enqueueServerWrite(task: () => Promise<unknown>) {
+    serverWriteChain.current = serverWriteChain.current.then(task, task);
+  }
 
   useEffect(() => {
     let cancelled = false;
 
     async function hydrateGuest() {
-      setItems(readGuestCartFromStorage());
+      commitItems(readGuestCartFromStorage());
       setReady(true);
     }
 
@@ -53,14 +61,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const guestItems = readGuestCartFromStorage();
       if (guestItems.length) {
-        await mergeGuestCartIntoServer(nextUserId, guestItems);
-        removeGuestCartFromStorage();
+        const merged = await mergeGuestCartIntoServer(nextUserId, guestItems);
+        if (merged) {
+          removeGuestCartFromStorage();
+        }
       }
 
       const serverItems = await fetchServerCart(nextUserId);
 
       if (cancelled) return;
-      setItems(serverItems);
+      commitItems(serverItems);
       setReady(true);
     }
 
@@ -76,7 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [initialized, userId]);
+  }, [initialized, userId, commitItems]);
 
   useEffect(() => {
     if (!ready) return;
@@ -87,52 +97,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clearLocalCart() {
     removeGuestCartFromStorage();
-    setItems([]);
+    commitItems([]);
   }
 
   function addItem(item: AddCartItemInput) {
     const quantityToAdd = Math.max(1, item.quantity ?? 1);
     const variant = normalizeVariant(item.variant);
 
-    const currentQty =
-      itemsRef.current.find((row) => sameCartLine(row, item.id, variant))
-        ?.quantity ?? 0;
+    const current = itemsRef.current;
+    const existing = current.find((row) => sameCartLine(row, item.id, variant));
+    const nextQty = (existing?.quantity ?? 0) + quantityToAdd;
 
-    const nextQty = currentQty + quantityToAdd;
+    const next = existing
+      ? current.map((row) =>
+          sameCartLine(row, item.id, variant) ? { ...row, quantity: nextQty } : row,
+        )
+      : [
+          ...current,
+          { ...item, quantity: quantityToAdd, variant: variant || undefined },
+        ];
 
-    setItems((currentItems) => {
-      const existingItem = currentItems.find((currentItem) =>
-        sameCartLine(currentItem, item.id, variant),
-      );
-
-      if (existingItem) {
-        return currentItems.map((currentItem) =>
-          sameCartLine(currentItem, item.id, variant)
-            ? { ...currentItem, quantity: currentItem.quantity + quantityToAdd }
-            : currentItem,
-        );
-      }
-
-      return [
-        ...currentItems,
-        { ...item, quantity: quantityToAdd, variant: variant || undefined },
-      ];
-    });
+    commitItems(next);
 
     if (userId) {
-      void upsertServerQuantity(userId, item.id, variant, nextQty);
+      enqueueServerWrite(() => upsertServerQuantity(userId, item.id, variant, nextQty));
     }
   }
 
   function removeItem(id: string, variant?: string) {
     const normalized = normalizeVariant(variant);
 
-    setItems((currentItems) =>
-      currentItems.filter((item) => !sameCartLine(item, id, normalized)),
+    commitItems(
+      itemsRef.current.filter((item) => !sameCartLine(item, id, normalized)),
     );
 
     if (userId) {
-      void deleteServerItem(userId, id, normalized);
+      enqueueServerWrite(() => deleteServerItem(userId, id, normalized));
     }
   }
 
@@ -144,22 +144,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setItems((currentItems) =>
-      currentItems.map((item) =>
+    commitItems(
+      itemsRef.current.map((item) =>
         sameCartLine(item, id, normalized) ? { ...item, quantity } : item,
       ),
     );
 
     if (userId) {
-      void upsertServerQuantity(userId, id, normalized, quantity);
+      enqueueServerWrite(() => upsertServerQuantity(userId, id, normalized, quantity));
     }
   }
 
   function clearCart() {
-    setItems([]);
+    commitItems([]);
 
     if (userId) {
-      void clearServerCart(userId);
+      enqueueServerWrite(() => clearServerCart(userId));
       return;
     }
 

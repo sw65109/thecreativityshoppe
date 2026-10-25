@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type VerifyResetTokenInput = {
@@ -34,7 +34,9 @@ export function usePasswordReset() {
   const [error, setError] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
 
-  async function runResetAction<T>(action: () => Promise<T>) {
+  const runResetAction = useCallback(async function runResetAction<T>(
+    action: () => Promise<T>,
+  ) {
     setLoading(true);
     setError(null);
 
@@ -47,70 +49,76 @@ export function usePasswordReset() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function sendResetEmail(email: string) {
-    return runResetAction(async () => {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: buildClientUrl("/reset-password"),
-      });
-
-      if (error) {
-        throw error;
-      }
-    });
-  }
-
-  async function verifyResetToken(input: VerifyResetTokenInput) {
-    return runResetAction(async () => {
-      if (input.code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(
-          input.code
-        );
+  const sendResetEmail = useCallback(
+    async (email: string) =>
+      runResetAction(async () => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: buildClientUrl("/reset-password"),
+        });
 
         if (error) {
           throw error;
         }
+      }),
+    [runResetAction],
+  );
 
-        setIsVerified(true);
-        return data.session;
-      }
+  const verifyResetToken = useCallback(
+    async (input: VerifyResetTokenInput) =>
+      runResetAction(async () => {
+        if (input.code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(
+            input.code,
+          );
 
-      if (input.tokenHash) {
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: input.tokenHash,
-          type: "recovery",
+          if (error) {
+            throw error;
+          }
+
+          setIsVerified(true);
+          return data.session;
+        }
+
+        if (input.tokenHash) {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: input.tokenHash,
+            type: "recovery",
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          setIsVerified(true);
+          return data.session;
+        }
+
+        throw new Error("Missing password reset token.");
+      }),
+    [runResetAction],
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword: string) =>
+      runResetAction(async () => {
+        const { data, error } = await supabase.auth.updateUser({
+          password: newPassword,
         });
 
         if (error) {
           throw error;
         }
 
-        setIsVerified(true);
-        return data.session;
-      }
+        return data.user;
+      }),
+    [runResetAction],
+  );
 
-      throw new Error("Missing password reset token.");
-    });
-  }
-
-  async function updatePassword(newPassword: string) {
-    return runResetAction(async () => {
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data.user;
-    });
-  }
-
-  function clearError() {
+  const clearError = useCallback(() => {
     setError(null);
-  }
+  }, []);
 
   return {
     sendResetEmail,
