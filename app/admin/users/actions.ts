@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
-const PROTECTED_ADMIN_IDS = [
-  "a85e214b-b408-44be-a21a-58ee06115b62",
-  "4c96fe11-3f35-48da-b00f-3978ceb16d83"
-];
+const PROTECTED_ADMIN_IDS = (process.env.PROTECTED_ADMIN_IDS ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 export async function makeAdmin(formData: FormData) {
   await requireAdminServerAuthed();

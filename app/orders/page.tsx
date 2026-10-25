@@ -66,9 +66,10 @@ export default function OrdersPage() {
         body: JSON.stringify({ orderId }),
       });
 
-      const payload = (await res.json().catch(() => null)) as
-        | { ok?: boolean; error?: string }
-        | null;
+      const payload = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
 
       if (!res.ok) {
         throw new Error(payload?.error || "Failed to cancel order.");
@@ -122,9 +123,10 @@ export default function OrdersPage() {
         }),
       });
 
-      const payload = (await res.json().catch(() => null)) as
-        | { ok?: boolean; error?: string }
-        | null;
+      const payload = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
 
       if (!res.ok) {
         throw new Error(payload?.error || "Failed to cancel order.");
@@ -166,7 +168,9 @@ export default function OrdersPage() {
             </div>
 
             <div className="rounded-3xl border border-background/20 bg-background/10 p-6">
-              <h2 className="text-xl font-semibold">Guest order cancellation</h2>
+              <h2 className="text-xl font-semibold">
+                Guest order cancellation
+              </h2>
               <p className="mt-2 text-sm text-background/70">
                 If you checked out as a guest, enter the email used for the
                 order, your order number, and the shipping ZIP/postal code.
@@ -240,9 +244,8 @@ export default function OrdersPage() {
                 .toLowerCase();
 
               const canCancel =
-                normalizedStatus !== "shipped" &&
-                normalizedStatus !== "completed" &&
-                normalizedStatus !== "cancelled";
+                normalizedStatus === "paid" ||
+                normalizedStatus === "processing";
 
               const showCancelMessage =
                 cancelMessage?.orderId === order.id ? cancelMessage.text : null;

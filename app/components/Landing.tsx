@@ -108,7 +108,6 @@ export default function Landing({
               width={1600}
               height={900}
               sizes="(max-width: 768px) 90vw, (max-width: 1200px) 768px, 768px"
-              priority
               className="h-auto w-full object-cover rounded-lg"
             />
           </div>

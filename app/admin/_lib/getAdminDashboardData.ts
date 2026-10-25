@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { formatCurrency } from "./format";
+import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
 export type DashboardCard = { title: string; value: string };
 
@@ -31,6 +32,7 @@ export type AdminDashboardDataResult =
 const REVENUE_STATUSES: string[] = ["paid", "processing", "shipped", "completed"];
 
 export async function getAdminDashboardData(): Promise<AdminDashboardDataResult> {
+  await requireAdminServerAuthed();
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);

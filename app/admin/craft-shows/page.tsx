@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { createCraftShow, updateCraftShow, deleteCraftShow } from "./actions";
+import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
 export const runtime = "nodejs";
 
@@ -15,13 +16,12 @@ type CraftShowRow = {
 };
 
 export default async function AdminCraftShowsPage() {
+  await requireAdminServerAuthed();
   const today = new Date().toISOString().slice(0, 10);
   
   const { data, error } = await supabaseServer
   .from("craft_shows")
-  .select("id, name, location, start_date, end_date")
-  .eq("is_active", true)
-  .gte("start_date", today)
+  .select("id, name, location, start_date, end_date, is_active, sort_order")
   .order("start_date", { ascending: true })
   .order("sort_order", { ascending: true });
 

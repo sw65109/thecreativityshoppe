@@ -11,7 +11,7 @@ function cleanText(value: FormDataEntryValue | null) {
 
 function cleanDate(value: FormDataEntryValue | null) {
   const v = String(value ?? "").trim();
-  return v.length ? v : null; // "YYYY-MM-DD"
+  return v.length ? v : null;
 }
 
 export async function createCraftShow(formData: FormData) {

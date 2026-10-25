@@ -1,10 +1,12 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import type { ProductRow } from "./types";
+import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
 export async function loadProducts(): Promise<{
   products: ProductRow[];
   error?: string;
 }> {
+  await requireAdminServerAuthed();
   const extended = await supabaseServer
     .from("products")
     .select(

@@ -44,7 +44,6 @@ export default function FeaturedProducts({
                   src={product.image}
                   alt={product.name}
                   fill
-                  loading="eager"
                   sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
                   className="object-cover"
                 />

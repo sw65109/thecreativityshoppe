@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type SyntheticEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePasswordReset } from "@/app/hooks/usePasswordReset";
@@ -16,35 +16,30 @@ function ResetPasswordInner() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>("Verifying reset link...");
 
-  const tokenInput = useMemo(() => {
-    const code = params.get("code");
-    const tokenHash = params.get("token_hash");
-    return { code, tokenHash };
-  }, [params]);
+  const code = params.get("code");
+  const tokenHash = params.get("token_hash");
+
+  // One-time codes must be exchanged exactly once per token (also under Strict Mode).
+  const verifiedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const tokenKey = `${code ?? ""}|${tokenHash ?? ""}`;
+    if (verifiedKeyRef.current === tokenKey) return;
+    verifiedKeyRef.current = tokenKey;
 
     async function run() {
       clearError();
-      setMessage("Verifying reset link...");
 
       try {
-        await verifyResetToken(tokenInput);
-        if (cancelled) return;
+        await verifyResetToken({ code, tokenHash });
         setMessage(null);
       } catch (e) {
-        if (cancelled) return;
         setMessage(e instanceof Error ? e.message : "Could not verify reset link.");
       }
     }
 
     void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clearError, tokenInput, verifyResetToken]);
+  }, [code, tokenHash, verifyResetToken, clearError]);
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();

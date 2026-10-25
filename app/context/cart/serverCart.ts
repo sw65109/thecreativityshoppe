@@ -48,8 +48,11 @@ export async function fetchServerCart(userId: string): Promise<CartItem[]> {
     .filter(Boolean) as CartItem[];
 }
 
-export async function mergeGuestCartIntoServer(userId: string, guestItems: CartItem[]) {
-  if (!guestItems.length) return;
+export async function mergeGuestCartIntoServer(
+  userId: string,
+  guestItems: CartItem[],
+): Promise<boolean> {
+  if (!guestItems.length) return true;
 
   const { data: existing, error: existingError } = await supabase
     .from("cart_items")
@@ -58,7 +61,7 @@ export async function mergeGuestCartIntoServer(userId: string, guestItems: CartI
 
   if (existingError) {
     console.error("Failed to read existing server cart:", existingError);
-    return;
+    return false;
   }
 
   const existingMap = new Map<string, number>();
@@ -87,7 +90,10 @@ export async function mergeGuestCartIntoServer(userId: string, guestItems: CartI
 
   if (upsertError) {
     console.error("Failed to merge guest cart into server cart:", upsertError);
+    return false;
   }
+
+  return true;
 }
 
 export async function upsertServerQuantity(

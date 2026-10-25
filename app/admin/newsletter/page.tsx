@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabaseServer";
+import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,7 @@ type NewsletterSignup = {
 };
 
 export default async function AdminNewsletterPage() {
+  await requireAdminServerAuthed();
   const { data, error } = await supabaseServer
     .from("newsletter_signups")
     .select("email, source, created_at")

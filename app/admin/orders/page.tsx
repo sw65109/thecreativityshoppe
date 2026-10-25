@@ -5,6 +5,7 @@ import {
   type OrderWithItems,
 } from "@/types/order";
 import { changeOrderStatus } from "./actions";
+import { requireAdminServerAuthed } from "@/lib/requireAdminServerAuthed";
 
 function formatCurrency(value: number | string | null) {
   const amount = Number(value ?? 0);
@@ -34,6 +35,7 @@ function formatAddressLines(address: CheckoutAddress | null) {
 }
 
 export default async function AdminOrdersPage() {
+  await requireAdminServerAuthed();
   const { data: orders, error } = await supabaseServer
     .from("orders")
     .select(
